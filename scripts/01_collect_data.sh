@@ -72,28 +72,34 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ============================================================
-# Validate prerequisites
+# Validate prerequisites — auto-install if possible
 # ============================================================
-if ! command -v gh &>/dev/null; then
-    echo "ERROR: 'gh' CLI is not installed." >&2
-    echo "Install it: brew install gh  (macOS) or see https://cli.github.com" >&2
-    exit 1
-fi
+HAS_BREW=false
+command -v brew &>/dev/null && HAS_BREW=true
+
+auto_install() {
+    local cmd="$1" pkg="${2:-$1}"
+    if ! command -v "$cmd" &>/dev/null; then
+        if $HAS_BREW; then
+            echo "Installing $pkg via Homebrew..." >&2
+            brew install "$pkg"
+        else
+            echo "ERROR: '$cmd' is not installed. Install it and re-run." >&2
+            echo "  macOS:  brew install $pkg" >&2
+            echo "  Linux:  apt-get install $pkg  or  yum install $pkg" >&2
+            exit 1
+        fi
+    fi
+}
+
+auto_install python3 python3
+auto_install jq jq
+auto_install gh gh
 
 if ! gh auth status &>/dev/null; then
-    echo "ERROR: 'gh' CLI is not authenticated." >&2
-    echo "Run: gh auth login" >&2
-    exit 1
-fi
-
-if ! command -v jq &>/dev/null; then
-    echo "ERROR: 'jq' is not installed." >&2
-    echo "Install it: brew install jq  (macOS)" >&2
-    exit 1
-fi
-
-if ! command -v python3 &>/dev/null; then
-    echo "ERROR: 'python3' is not installed." >&2
+    echo "ERROR: GitHub CLI is not authenticated." >&2
+    echo "Run:  gh auth login" >&2
+    echo "(If running inside an AI agent, type:  ! gh auth login  to run interactively)" >&2
     exit 1
 fi
 

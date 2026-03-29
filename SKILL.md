@@ -23,14 +23,25 @@ HTML template               →  consumes BOTH files (renders the full report)
 
 The scripts handle numbers. You handle meaning. Don't just describe charts — interpret them. Find the surprising, the personal, the trajectory.
 
-## Prerequisites
-
-Verify before starting:
-1. **`gh` CLI** installed and authenticated (`gh auth status`)
-2. **Python 3.8+** available (`python3 --version`)
-3. **jq** installed (`jq --version`)
-
 ## Workflow
+
+### Step 0: Check Prerequisites (ALWAYS RUN FIRST)
+
+Before anything else, run these checks and auto-install anything missing:
+
+```bash
+# Check each prerequisite — install if missing
+command -v python3 >/dev/null 2>&1 || { echo "Installing Python..."; brew install python3; }
+command -v jq >/dev/null 2>&1 || { echo "Installing jq..."; brew install jq; }
+command -v gh >/dev/null 2>&1 || { echo "Installing GitHub CLI..."; brew install gh; }
+
+# Check gh authentication — prompt login if needed
+gh auth status >/dev/null 2>&1 || { echo "GitHub CLI not authenticated."; gh auth login; }
+```
+
+If `brew` is not available (Linux), use `apt-get install` or `yum install` instead. If `gh auth login` requires interactive input, tell the user to run `! gh auth login` in the prompt so the interactive flow runs in their terminal.
+
+All four must pass before proceeding: `python3 --version && jq --version && gh auth status`
 
 ### Step 1: Collect GitHub Data (5-10 min)
 
