@@ -1,0 +1,2646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Velocity Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+/* ============================================================
+   PREMIUM COSMIC DARK THEME
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg-void: #05060f;
+  --bg-deep: #0a0d1a;
+  --bg-surface: rgba(16, 20, 42, 0.4);
+  --bg-card: rgba(20, 25, 54, 0.4);
+  --bg-card-hover: rgba(26, 32, 69, 0.6);
+  --border: rgba(99, 130, 255, 0.15);
+  --border-glow: rgba(99, 130, 255, 0.4);
+  --text-primary: #e8ecf4;
+  --text-secondary: #a0abcc;
+  --text-muted: #6b779a;
+  --accent-blue: #6382ff;
+  --accent-cyan: #00d4ff;
+  --accent-purple: #a855f7;
+  --accent-green: #10b981;
+  --accent-orange: #f59e0b;
+  --accent-red: #ef4444;
+  --accent-pink: #ec4899;
+  --gradient-hero: linear-gradient(135deg, #6382ff 0%, #a855f7 50%, #ec4899 100%);
+  --glow-blue: 0 0 40px rgba(99, 130, 255, 0.2);
+  --glow-purple: 0 0 40px rgba(168, 85, 247, 0.2);
+  --glass-blur: blur(16px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ============================================================
+   ANIMATED STARFIELD
+   ============================================================ */
+.stars-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, #0a0d1a 0%, var(--bg-void) 100%);
+}
+
+.stars {
+  position: absolute;
+  width: 200vw;
+  height: 200vh;
+  top: -50vh;
+  left: -50vw;
+}
+
+.stars-1 {
+  background:
+    radial-gradient(1.5px 1.5px at 20% 30%, rgba(99,130,255,0.6), transparent),
+    radial-gradient(1px 1px at 40% 70%, rgba(168,85,247,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 60% 20%, rgba(0,212,255,0.4), transparent),
+    radial-gradient(1px 1px at 80% 60%, rgba(236,72,153,0.3), transparent),
+    radial-gradient(1px 1px at 10% 80%, rgba(99,130,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 90% 10%, rgba(168,85,247,0.6), transparent);
+  background-size: 550px 550px, 350px 350px, 250px 250px, 450px 450px, 600px 600px, 300px 300px;
+  animation: drift 120s linear infinite;
+}
+
+.stars-2 {
+  background:
+    radial-gradient(1.5px 1.5px at 50% 50%, rgba(0,212,255,0.5), transparent),
+    radial-gradient(1px 1px at 30% 90%, rgba(99,130,255,0.4), transparent),
+    radial-gradient(2px 2px at 70% 40%, rgba(168,85,247,0.3), transparent),
+    radial-gradient(1px 1px at 15% 55%, rgba(236,72,153,0.5), transparent);
+  background-size: 400px 400px, 500px 500px, 350px 350px, 420px 420px;
+  animation: drift 80s linear infinite reverse;
+  opacity: 0.8;
+}
+
+@keyframes drift {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(-200px) translateX(-100px); }
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================
+   LOADING & ERROR STATES
+   ============================================================ */
+.loading-state, .error-state {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 60px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 24px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.loading-state p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.error-state h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent-red);
+  margin-bottom: 16px;
+}
+
+.error-state p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  max-width: 500px;
+}
+
+.error-state code {
+  display: block;
+  margin-top: 16px;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--accent-cyan);
+}
+
+/* ============================================================
+   GLASSMORPHISM & CARDS
+   ============================================================ */
+.card, .era-card, .showcase-card, .milestone-item, .dvi-formula, .anomaly-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.card {
+  border-radius: 20px;
+  padding: 32px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-glow);
+  box-shadow: var(--glow-blue), 0 16px 40px rgba(0,0,0,0.3);
+  transform: translateY(-4px) scale(1.005);
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 100px 24px 60px;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(99,130,255,0.1) 0%, rgba(168,85,247,0.05) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: rgba(99, 130, 255, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  animation: fadeInDown 0.8s ease, pulseBadge 3s infinite alternate;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes pulseBadge {
+  0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); border-color: rgba(0, 212, 255, 0.4); }
+  100% { box-shadow: 0 0 20px 0 rgba(0, 212, 255, 0); border-color: var(--border); }
+}
+
+.hero h1 {
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 24px;
+  animation: fadeInUp 0.8s ease 0.2s both;
+  filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.2));
+}
+
+.hero-subtitle {
+  font-size: clamp(18px, 2.5vw, 24px);
+  color: var(--text-secondary);
+  max-width: 650px;
+  margin: 0 auto 56px auto;
+  animation: fadeInUp 0.8s ease 0.4s both;
+}
+
+.hero-stats-dock {
+  background: var(--bg-surface);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border);
+  border-top: 1px solid rgba(99, 130, 255, 0.3);
+  border-radius: 24px;
+  padding: 24px 48px;
+  display: inline-block;
+  animation: fadeInUp 0.8s ease 0.6s both;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+.hero-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(28px, 3.5vw, 40px);
+  font-weight: 800;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   SECTIONS
+   ============================================================ */
+section {
+  padding: 100px 0;
+  position: relative;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.section-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+  background: rgba(0, 212, 255, 0.1);
+  padding: 6px 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.section-title {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.section-desc {
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   CHART CONTAINERS
+   ============================================================ */
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+}
+
+.chart-container-tall {
+  height: 500px;
+}
+
+/* ============================================================
+   DVI DEFINITION
+   ============================================================ */
+.dvi-definition {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+.dvi-formula {
+  border-radius: 16px;
+  padding: 28px;
+}
+
+.dvi-formula h3 {
+  font-size: 15px;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.dvi-formula code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  color: #fff;
+  background: linear-gradient(90deg, rgba(168,85,247,0.2) 0%, rgba(99,130,255,0.2) 100%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(168,85,247,0.3);
+  display: inline-block;
+}
+
+.dvi-formula p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-top: 16px;
+}
+
+/* ============================================================
+   ERA CARDS
+   ============================================================ */
+.era-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.era-card {
+  border-radius: 20px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.era-card:hover {
+  border-color: var(--border-glow);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: var(--glow-purple), 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.era-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--era-color, var(--gradient-hero));
+  box-shadow: 0 0 15px var(--era-color, transparent);
+}
+
+.era-name {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.era-period {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 16px;
+  background: rgba(255,255,255,0.05);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.era-desc {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.era-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.era-metric {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.era-metric-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.era-metric-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 4px;
+}
+
+/* ============================================================
+   MILESTONE TIMELINE
+   ============================================================ */
+.milestone-track {
+  position: relative;
+  padding-left: 48px;
+}
+
+.milestone-track::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+  box-shadow: 0 0 10px rgba(168,85,247,0.5);
+}
+
+.milestone-item {
+  position: relative;
+  margin-bottom: 40px;
+  padding: 24px 32px;
+  border-radius: 16px;
+  transition: all 0.4s ease;
+}
+
+.milestone-item:hover {
+  border-color: var(--border-glow);
+  box-shadow: var(--glow-blue);
+  transform: translateX(8px);
+}
+
+.milestone-item::before {
+  content: '';
+  position: absolute;
+  left: -35px;
+  top: 30px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 15px var(--accent-cyan), 0 0 0 4px rgba(0,212,255,0.2);
+}
+
+.milestone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.milestone-name {
+  font-weight: 800;
+  font-size: 18px;
+  color: #fff;
+}
+
+.milestone-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.05);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.milestone-desc {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.milestone-impact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.milestone-impact.up {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 10px rgba(16,185,129,0.2);
+}
+
+.milestone-impact.down {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.milestone-impact.neutral {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-orange);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ============================================================
+   REPO TABLE
+   ============================================================ */
+.repo-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.repo-table th {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.repo-table th:nth-child(1), .repo-table th:nth-child(2) {
+  text-align: left;
+}
+
+.repo-table td {
+  padding: 16px 20px;
+  background: rgba(20, 25, 54, 0.4);
+  backdrop-filter: blur(8px);
+  font-size: 15px;
+  border-top: 1px solid rgba(255,255,255,0.02);
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+  transition: all 0.2s ease;
+}
+
+.repo-table tr td:first-child {
+  border-radius: 12px 0 0 12px;
+  border-left: 1px solid rgba(255,255,255,0.02);
+}
+
+.repo-table tr td:last-child {
+  border-radius: 0 12px 12px 0;
+  border-right: 1px solid rgba(255,255,255,0.02);
+}
+
+.repo-table tr:hover td {
+  background: rgba(30, 38, 80, 0.6);
+  transform: scale(1.01);
+  border-color: rgba(99,130,255,0.2);
+}
+
+.repo-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.repo-org {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+.text-green { color: var(--accent-green); }
+.text-red { color: var(--accent-red); }
+.text-muted { color: var(--text-muted); }
+
+/* ============================================================
+   LANGUAGE BARS
+   ============================================================ */
+.lang-bar-container {
+  margin-bottom: 48px;
+}
+
+.lang-bar-track {
+  display: flex;
+  height: 36px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.lang-bar-segment {
+  height: 100%;
+  transition: all 0.3s;
+  cursor: pointer;
+  position: relative;
+}
+
+.lang-bar-segment:hover {
+  opacity: 0.9;
+  transform: scaleY(1.1);
+  box-shadow: 0 0 15px currentColor;
+  z-index: 2;
+}
+
+.lang-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.lang-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  background: rgba(0,0,0,0.2);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.lang-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.lang-pct {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ============================================================
+   HEATMAP
+   ============================================================ */
+.heatmap-wrapper {
+  overflow-x: auto;
+  padding-bottom: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 130, 255, 0.3) transparent;
+}
+
+.heatmap-wrapper::-webkit-scrollbar { height: 8px; }
+.heatmap-wrapper::-webkit-scrollbar-thumb { background: rgba(99,130,255,0.3); border-radius: 4px; }
+
+.heatmap-grid {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.heatmap-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heatmap-cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(99, 130, 255, 0.05);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2), inset 0 -1px 1px rgba(255,255,255,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px currentColor, inset 0 1px 2px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+  text-align: center;
+  padding: 80px 24px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(to top, rgba(10,13,26,0.8), transparent);
+  position: relative;
+  z-index: 1;
+}
+
+.footer p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.footer a:hover {
+  color: #fff;
+  text-shadow: 0 0 8px var(--accent-cyan);
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.165, 0.84, 0.44, 1),
+              transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger classes */
+.stagger-1 { transition-delay: 0.1s; }
+.stagger-2 { transition-delay: 0.2s; }
+.stagger-3 { transition-delay: 0.3s; }
+.stagger-4 { transition-delay: 0.4s; }
+.stagger-5 { transition-delay: 0.5s; }
+.stagger-6 { transition-delay: 0.6s; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .dvi-definition { grid-template-columns: 1fr; }
+  .era-grid { grid-template-columns: 1fr; }
+  .hero-stats { gap: 20px; }
+  .chart-container { height: 300px; }
+  section { padding: 60px 0; }
+  .repo-table th, .repo-table td { padding: 12px; font-size: 13px; }
+  .milestone-track { padding-left: 30px; }
+  .hero-stats-dock { padding: 20px; }
+  .nav-link { font-size: 11px; padding: 6px 10px; }
+  .nav-brand { font-size: 13px; }
+  .anomaly-grid { grid-template-columns: 1fr; }
+  .showcase-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   NAV BAR
+   ============================================================ */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(5, 6, 15, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 0 24px;
+  transform: translateY(-100%);
+  transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.nav.visible {
+  transform: translateY(0);
+}
+
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav-inner::-webkit-scrollbar { display: none; }
+
+.nav-brand {
+  font-weight: 900;
+  font-size: 16px;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+  margin-right: 24px;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+}
+
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.05);
+}
+
+.nav-link.active {
+  color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 15px rgba(0,212,255,0.2);
+}
+
+/* NARRATIVE BLOCKS */
+.narrative {
+  max-width: 760px;
+  margin: -20px auto 80px;
+  text-align: center;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.narrative p {
+  font-size: 18px;
+  line-height: 1.9;
+  color: var(--text-secondary);
+}
+
+.narrative span {
+  transition: color 0.3s;
+}
+.narrative span:hover {
+  color: #fff;
+}
+
+.narrative .highlight {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.narrative .stat-callout {
+  display: inline;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Anomaly callouts */
+.anomaly-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.anomaly-card {
+  background: linear-gradient(135deg, rgba(236,72,153,0.1) 0%, rgba(168,85,247,0.05) 100%);
+  border: 1px solid rgba(236, 72, 153, 0.2);
+  border-radius: 16px;
+  padding: 32px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(236,72,153,0.05);
+}
+
+.anomaly-card::before {
+  content: '!';
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  font-size: 80px;
+  font-weight: 900;
+  color: rgba(236, 72, 153, 0.1);
+  font-family: 'JetBrains Mono', monospace;
+  text-shadow: 0 0 20px rgba(236,72,153,0.2);
+}
+
+/* Project showcase */
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
+}
+
+.showcase-card {
+  border-radius: 20px;
+  padding: 32px;
+}
+
+.showcase-headline {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent-purple);
+  margin-bottom: 12px;
+  display: inline-block;
+  background: rgba(168,85,247,0.1);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(168,85,247,0.2);
+}
+
+.showcase-repo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.showcase-narrative {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* Closing statement */
+.closing {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 100px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.closing p {
+  font-size: 20px;
+  line-height: 1.9;
+  color: #fff;
+  font-weight: 500;
+  text-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+
+/* Data notes */
+.data-notes {
+  max-width: 760px;
+  margin: 0 auto 60px;
+  padding: 32px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.data-notes h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.data-notes ul {
+  list-style: none;
+  padding: 0;
+}
+
+.data-notes li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+  padding-left: 20px;
+  position: relative;
+}
+
+.data-notes li::before {
+  content: '\2192';
+  position: absolute;
+  left: 0;
+  color: var(--accent-blue);
+  font-family: 'JetBrains Mono', monospace;
+}
+</style>
+</head>
+<body>
+
+<div class="stars-container">
+  <div class="stars stars-1"></div>
+  <div class="stars stars-2"></div>
+</div>
+
+<!-- LOADING STATE -->
+<div class="loading-state" id="loadingState">
+  <div class="loading-spinner"></div>
+  <h2>Loading Velocity Report</h2>
+  <p>Fetching insights.json...</p>
+</div>
+
+<!-- ERROR STATE (hidden by default) -->
+<div class="error-state" id="errorState" style="display:none;">
+  <h2>Could Not Load Data</h2>
+  <p>The report needs an <strong>insights.json</strong> file in the same directory. Make sure you have run the analysis script and the file is served via HTTP (not file://).</p>
+  <code>python3 -m http.server 8080</code>
+</div>
+
+<!-- MAIN CONTENT (hidden until data loads) -->
+<div id="mainContent" style="display:none;">
+
+<!-- NAV BAR -->
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <span class="nav-brand" id="navBrand">DVR</span>
+    <a class="nav-link" href="#hero">Overview</a>
+    <a class="nav-link" href="#story">Story</a>
+    <a class="nav-link" href="#timeline">Timeline</a>
+    <a class="nav-link" href="#dvi">DVI</a>
+    <a class="nav-link" href="#lines">Lines</a>
+    <a class="nav-link" href="#lpc">Lines/Commit</a>
+    <a class="nav-link" href="#eras">Eras</a>
+    <a class="nav-link" href="#acceleration">Acceleration</a>
+    <a class="nav-link" href="#milestones">Milestones</a>
+    <a class="nav-link" href="#languages">Languages</a>
+    <a class="nav-link" href="#repos">Repos</a>
+    <a class="nav-link" href="#showcase">Showcase</a>
+    <a class="nav-link" href="#repo-timeline">Activity</a>
+    <a class="nav-link" href="#heatmap">Heatmap</a>
+    <a class="nav-link" href="#yearly">Annual</a>
+  </div>
+</nav>
+
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<header class="hero" id="hero">
+  <div class="container">
+    <div class="hero-badge">Delivery Velocity Report</div>
+    <h1 id="heroTitle"></h1>
+    <p class="hero-subtitle" id="heroSubtitle"></p>
+    <div class="hero-stats-dock">
+      <div class="hero-stats" id="heroStats"></div>
+    </div>
+  </div>
+</header>
+
+
+<!-- STORY NARRATIVE -->
+<section id="story" style="padding: 40px 0 0;">
+  <div class="narrative fade-in" id="storyNarrative"></div>
+</section>
+
+<!-- ============================================================
+     VELOCITY TIMELINE
+     ============================================================ -->
+<section id="timeline">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Timeline</div>
+      <h2 class="section-title">Contribution Velocity Over Time</h2>
+      <p class="section-desc">Monthly contributions with AI milestone annotations. Each vertical line marks a frontier model release.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="chart-container chart-container-tall">
+        <canvas id="commitTimeline"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<div class="narrative fade-in" style="margin-top: 80px;" id="timelineNarrative"></div>
+
+<!-- ============================================================
+     DELIVERY VELOCITY INDEX
+     ============================================================ -->
+<section id="dvi">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Metric</div>
+      <h2 class="section-title">Delivery Velocity Index</h2>
+      <p class="section-desc">A composite metric that quantifies shipping speed, code impact, and project breadth.</p>
+    </div>
+    <div class="dvi-definition fade-in" id="dviDefinition"></div>
+    <div class="card fade-in">
+      <div class="chart-container chart-container-tall">
+        <canvas id="dviChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     LINES OF CODE
+     ============================================================ -->
+<section id="lines">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Impact</div>
+      <h2 class="section-title">Lines of Code Shipped</h2>
+      <p class="section-desc">Cumulative additions and deletions. Net lines = the code that stayed.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="chart-container chart-container-tall">
+        <canvas id="linesChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="narrative fade-in" style="margin-top: 80px;" id="linesNarrative"></div>
+
+<!-- ============================================================
+     LINES PER COMMIT
+     ============================================================ -->
+<section id="lpc">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Granularity</div>
+      <h2 class="section-title">Lines per Commit</h2>
+      <p class="section-desc">Are commits getting larger or smaller over time? This reveals how AI changes commit granularity.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="chart-container chart-container-tall">
+        <canvas id="lpcChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ERA ANALYSIS
+     ============================================================ -->
+<section id="eras">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Evolution</div>
+      <h2 class="section-title">The Six Eras</h2>
+      <p class="section-desc">How AI model generations transformed development velocity.</p>
+    </div>
+    <div class="era-grid" id="eraGrid"></div>
+  </div>
+</section>
+
+
+<div class="narrative fade-in" style="margin-top: 80px;" id="eraEndNarrative"></div>
+
+<!-- ============================================================
+     ERA BAR COMPARISON
+     ============================================================ -->
+<section id="acceleration">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Comparison</div>
+      <h2 class="section-title">Era-over-Era Acceleration</h2>
+      <p class="section-desc">Average monthly commits and net lines per era.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="chart-container">
+        <canvas id="eraCompareChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     AI MILESTONES
+     ============================================================ -->
+<section id="milestones">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Inflection Points</div>
+      <h2 class="section-title">AI Model Milestones</h2>
+      <p class="section-desc">How each frontier model release impacted delivery velocity.</p>
+    </div>
+    <div class="milestone-track" id="milestoneTrack"></div>
+  </div>
+</section>
+
+<div class="container" style="margin-top: -40px; margin-bottom: 80px;">
+  <div class="anomaly-grid" id="anomalyGrid"></div>
+</div>
+
+<div class="narrative fade-in" style="margin-top: 80px;" id="milestoneNarrative"></div>
+
+<!-- ============================================================
+     LANGUAGES
+     ============================================================ -->
+<section id="languages">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Stack</div>
+      <h2 class="section-title">Language Universe</h2>
+      <p class="section-desc">Code distribution across languages, measured in bytes.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="lang-bar-container" id="langBars"></div>
+      <div class="chart-container">
+        <canvas id="langChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     TOP REPOS
+     ============================================================ -->
+<section id="repos">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Projects</div>
+      <h2 class="section-title">Top Repositories</h2>
+      <p class="section-desc">The codebases that received the most attention.</p>
+    </div>
+    <div class="card fade-in" style="overflow-x:auto;">
+      <table class="repo-table" id="repoTable"></table>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============================================================
+     PROJECT SHOWCASE
+     ============================================================ -->
+<section id="showcase">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">What Was Built</div>
+      <h2 class="section-title">Project Showcase</h2>
+      <p class="section-desc">The codebases behind the numbers — what each project actually is.</p>
+    </div>
+    <div class="showcase-grid" id="showcaseGrid"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     REPO ACTIVITY TIMELINE
+     ============================================================ -->
+<section id="repo-timeline">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Activity Map</div>
+      <h2 class="section-title">Project Activity Timeline</h2>
+      <p class="section-desc">When each major repository was actively developed. Bar width shows the active period.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="chart-container" style="height: 500px;">
+        <canvas id="repoTimeline"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     CONTRIBUTION HEATMAP
+     ============================================================ -->
+<section id="heatmap">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Consistency</div>
+      <h2 class="section-title">Contribution Heatmap</h2>
+      <p class="section-desc" id="heatmapDesc"></p>
+    </div>
+    <div class="card fade-in">
+      <div class="heatmap-wrapper" id="heatmapWrapper"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     YEARLY BREAKDOWN
+     ============================================================ -->
+<section id="yearly">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Year by Year</div>
+      <h2 class="section-title">Annual Output</h2>
+      <p class="section-desc">Commit volume per calendar year.</p>
+    </div>
+    <div class="card fade-in">
+      <div class="chart-container">
+        <canvas id="yearlyChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     DATA NOTES
+     ============================================================ -->
+<section id="data-notes" style="padding: 40px 0;">
+  <div class="container">
+    <div class="data-notes fade-in" id="dataNotes"></div>
+  </div>
+</section>
+
+<div class="closing fade-in" id="closingStatement"></div>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<div class="footer">
+  <p>Generated on <span id="footerDate"></span> from GitHub data via <a href="https://github.com/anthropics/claude-code" target="_blank">Claude Code</a></p>
+</div>
+
+</div><!-- end mainContent -->
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+// Language colors (GitHub-style)
+const LANG_COLORS = {
+  'TypeScript': '#3178c6', 'JavaScript': '#f1e05a', 'Python': '#3572A5',
+  'HTML': '#e34c26', 'CSS': '#563d7c', 'C#': '#178600', 'Shell': '#89e051',
+  'HCL': '#844fba', 'PHP': '#4F5D95', 'TSQL': '#e38c00', 'Dart': '#00B4AB',
+  'Ruby': '#701516', 'Go': '#00ADD8', 'Rust': '#dea584', 'Java': '#b07219',
+  'C++': '#f34b7d', 'C': '#555555', 'Lua': '#000080', 'Vue': '#41b883',
+  'Svelte': '#ff3e00', 'SCSS': '#c6538c', 'Dockerfile': '#384d54',
+  'Makefile': '#427819', 'Swift': '#F05138', 'Kotlin': '#A97BFF',
+};
+
+function getColor(lang) {
+  return LANG_COLORS[lang] || '#6382ff';
+}
+
+function fmt(n) {
+  if (n == null) return '\u2014';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+
+// ============================================================
+// DATA LOADING
+// ============================================================
+let DATA = null;
+let NARRATIVES = null;
+
+Promise.all([
+  fetch('./insights.json').then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }),
+  fetch('./narratives.json').then(r => r.ok ? r.json() : null).catch(() => null)
+])
+  .then(([data, narratives]) => {
+    DATA = data;
+    NARRATIVES = narratives;
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    render();
+  })
+  .catch(err => {
+    console.error('Failed to load insights.json:', err);
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'flex';
+  });
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  const d = DATA;
+  renderHero(d);
+  renderStoryNarrative(d);
+  renderCommitTimeline(d);
+  renderTimelineNarrative(d);
+  renderDVI(d);
+  renderLinesChart(d);
+  renderLinesNarrative(d);
+  renderLPCChart(d);
+  renderEras(d);
+  renderEraEndNarrative(d);
+  renderEraCompare(d);
+  renderMilestones(d);
+  renderMilestoneNarrative(d);
+  renderLanguages(d);
+  renderRepoTable(d);
+  renderShowcase(d);
+  renderHeatmap(d);
+  renderYearly(d);
+  renderRepoTimeline(d);
+  renderDataNotes(d);
+  renderNarrativeExtras(d);
+
+  document.getElementById('footerDate').textContent = new Date(d.generated_at).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  // Scroll animations
+  const fadeObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-in').forEach(el => fadeObserver.observe(el));
+}
+
+// ============================================================
+// CHART.JS DEFAULTS
+// ============================================================
+Chart.defaults.color = '#a0abcc';
+Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+// Custom plugin for neon glow on line charts
+const neonGlowPlugin = {
+  id: 'neonGlow',
+  beforeDatasetsDraw: (chart) => {
+    const ctx = chart.ctx;
+    const hasLine = chart.data.datasets.some(ds =>
+      ds.type === 'line' || (!ds.type && chart.config.type === 'line')
+    );
+    if (hasLine) {
+      ctx.save();
+      ctx.shadowBlur = 15;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      chart._neonGlowSaved = true;
+    }
+  },
+  afterDatasetsDraw: (chart) => {
+    if (chart._neonGlowSaved) {
+      chart.ctx.restore();
+      chart._neonGlowSaved = false;
+    }
+  }
+};
+Chart.register(neonGlowPlugin);
+
+// Custom Tooltip styling config
+const commonTooltipOptions = {
+  backgroundColor: 'rgba(20, 25, 54, 0.9)',
+  titleFont: { family: "'JetBrains Mono', monospace", size: 13 },
+  bodyFont: { family: "'JetBrains Mono', monospace", size: 12 },
+  padding: 12,
+  cornerRadius: 8,
+  borderColor: 'rgba(99, 130, 255, 0.3)',
+  borderWidth: 1,
+  boxPadding: 6,
+  usePointStyle: true,
+};
+
+// ============================================================
+// HERO
+// ============================================================
+function renderHero(d) {
+  const h = d.highlights;
+  const name = d.user.name || d.user.login;
+  document.getElementById('heroTitle').textContent = name;
+
+  // Build user initials for nav brand
+  const parts = name.split(/\s+/);
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : d.user.login.substring(0, 3).toUpperCase();
+  document.getElementById('navBrand').textContent = initials;
+
+  document.getElementById('heroSubtitle').textContent = (NARRATIVES && NARRATIVES.hero_tagline) ? NARRATIVES.hero_tagline :
+    `${h.years_active} years of shipping code. ${h.total_repos} repositories. ${h.total_active_days.toLocaleString()} active days.`;
+
+  const stats = [
+    { value: fmt(h.total_commits), label: 'Commits' },
+    { value: fmt(h.total_additions), label: 'Lines Added' },
+    { value: fmt(h.total_deletions), label: 'Lines Deleted' },
+    { value: fmt(h.total_net_lines), label: 'Net Lines' },
+    { value: h.max_streak_days, label: 'Day Streak' },
+    { value: h.total_contributions.toLocaleString(), label: 'Contributions' },
+  ];
+
+  document.getElementById('heroStats').innerHTML = stats.map((s, i) => `
+    <div class="hero-stat stagger-${i+1}">
+      <div class="hero-stat-value">${s.value}</div>
+      <div class="hero-stat-label">${s.label}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// NARRATIVES -- use LLM-generated narratives.json if available,
+// fall back to data-driven generic text
+// ============================================================
+
+// Helper: if NARRATIVES has a section narrative, use it; otherwise run the fallback
+function narr(section) {
+  if (NARRATIVES && NARRATIVES.section_narratives && NARRATIVES.section_narratives[section]) {
+    return NARRATIVES.section_narratives[section];
+  }
+  return null;
+}
+
+function renderStoryNarrative(d) {
+  const el = document.getElementById('storyNarrative');
+  if (NARRATIVES && NARRATIVES.story_intro) {
+    el.innerHTML = `<p>${NARRATIVES.story_intro}</p>`;
+    return;
+  }
+  const h = d.highlights;
+  const startYear = h.account_created ? h.account_created.substring(0, 4) : '?';
+
+  el.innerHTML = `<p>
+    This is the story of how a developer's output transformed across the age of AI.
+    What began as <span class="highlight">manual coding in ${startYear}</span> \u2014 writing every line by hand,
+    debugging with print statements, searching Stack Overflow \u2014 evolved through each generation
+    of frontier AI models into something unprecedented: <span class="stat-callout">agentic coding</span>,
+    where entire features ship autonomously.
+  </p>`;
+}
+
+function renderTimelineNarrative(d) {
+  const n = narr('timeline');
+  if (n) { document.getElementById('timelineNarrative').innerHTML = `<p>${n}</p>`; return; }
+  const h = d.highlights;
+  const peakMonth = h.peak_month || 'N/A';
+  const peakCommits = h.peak_month_commits;
+  document.getElementById('timelineNarrative').innerHTML = `<p>
+    The chart tells a clear story: steady output in the early years, acceleration as AI coding tools arrived,
+    then the <span class="stat-callout">exponential breakout</span> in the most recent era.
+    Peak month was <span class="highlight">${peakMonth}</span> with <span class="stat-callout">${peakCommits.toLocaleString()} commits</span>.
+  </p>`;
+}
+
+function renderLinesNarrative(d) {
+  const n = narr('lines');
+  if (n) { document.getElementById('linesNarrative').innerHTML = `<p>${n}</p>`; return; }
+  const h = d.highlights;
+  const netLines = fmt(h.total_net_lines);
+
+  // Calculate what % of code was written in the last era
+  const lastEra = d.eras.length > 0 ? d.eras[d.eras.length - 1] : null;
+  let lastEraPct = '';
+  if (lastEra && h.total_additions > 0) {
+    const pct = Math.round(lastEra.total_additions / h.total_additions * 100);
+    lastEraPct = ` Nearly <span class="highlight">${pct}% of all code was written in the ${lastEra.name} era</span>.`;
+  }
+
+  document.getElementById('linesNarrative').innerHTML = `<p>
+    The cumulative lines chart reveals the true inflection point:
+    <span class="stat-callout">${netLines} net lines</span> of code now live across these repositories.${lastEraPct}
+    The most recent era did not just increase velocity \u2014 it fundamentally changed the scale of what one person can build.
+  </p>`;
+}
+
+function renderEraEndNarrative(d) {
+  const n = narr('eras');
+  if (n) { document.getElementById('eraEndNarrative').innerHTML = `<p>${n}</p>`; return; }
+  if (d.eras.length < 2) {
+    document.getElementById('eraEndNarrative').innerHTML = '';
+    return;
+  }
+
+  const lastEra = d.eras[d.eras.length - 1];
+  const prevEras = d.eras.slice(0, -1);
+  const prevTotalCommits = prevEras.reduce((a, e) => a + e.total_commits, 0);
+
+  document.getElementById('eraEndNarrative').innerHTML = `<p>
+    The <span class="stat-callout">${lastEra.name}</span> era shattered every previous record \u2014
+    averaging <span class="highlight">${lastEra.avg_monthly_commits} commits per month</span> with <span class="highlight">${fmt(lastEra.total_net_lines)} net lines</span>.
+    ${lastEra.total_commits > prevTotalCommits ? 'That is more commits than all previous eras combined.' : ''}
+  </p>`;
+}
+
+function renderMilestoneNarrative(d) {
+  const n = narr('milestones');
+  if (n) { document.getElementById('milestoneNarrative').innerHTML = `<p>${n}</p>`; return; }
+  // Find top 3 positive DVI changes
+  const sorted = [...d.milestones].filter(m => m.dvi_change_pct > 0).sort((a, b) => b.dvi_change_pct - a.dvi_change_pct);
+  const top3 = sorted.slice(0, 3);
+
+  if (top3.length === 0) {
+    document.getElementById('milestoneNarrative').innerHTML = '';
+    return;
+  }
+
+  const items = top3.map(m => `<span class="highlight">${m.name} (+${Math.round(m.dvi_change_pct)}%)</span>`).join(', ');
+
+  document.getElementById('milestoneNarrative').innerHTML = `<p>
+    The largest DVI jumps came from: ${items}.
+    Each represented not just a better model, but a new way of working.
+  </p>`;
+}
+
+// ============================================================
+// NARRATIVE EXTRAS (anomalies, showcase overrides, closing)
+// Populated from NARRATIVES.json if available
+// ============================================================
+function renderNarrativeExtras(d) {
+  // Anomaly grid
+  const anomalyGrid = document.getElementById('anomalyGrid');
+  if (NARRATIVES && NARRATIVES.anomalies && NARRATIVES.anomalies.length > 0) {
+    anomalyGrid.innerHTML = NARRATIVES.anomalies.map((a, i) =>
+      `<div class="anomaly-card fade-in stagger-${(i % 4) + 1}">${a}</div>`
+    ).join('');
+  } else {
+    // Generate data-driven anomalies as fallback
+    const anomalies = [];
+    const h = d.highlights;
+    if (h.peak_month && h.peak_month_commits) {
+      anomalies.push(`Peak month <strong>${h.peak_month}</strong> produced <strong>${h.peak_month_commits.toLocaleString()} commits</strong> \u2014 the single most productive month on record.`);
+    }
+    if (h.max_streak_days && h.max_streak_days > 14) {
+      anomalies.push(`A <strong>${h.max_streak_days}-day</strong> consecutive commit streak demonstrates sustained, focused output over an extended period.`);
+    }
+    if (d.eras.length >= 2) {
+      const lastEra = d.eras[d.eras.length - 1];
+      const firstEra = d.eras[0];
+      if (firstEra.avg_monthly_commits > 0) {
+        const multiplier = Math.round(lastEra.avg_monthly_commits / firstEra.avg_monthly_commits);
+        if (multiplier > 2) {
+          anomalies.push(`The final era averaged <strong>${multiplier}x</strong> the monthly commits of the first era \u2014 a transformation driven by each generation of AI tooling.`);
+        }
+      }
+    }
+    if (anomalies.length > 0) {
+      anomalyGrid.innerHTML = anomalies.map((a, i) =>
+        `<div class="anomaly-card fade-in stagger-${(i % 4) + 1}">${a}</div>`
+      ).join('');
+    }
+  }
+
+  // Showcase grid (NARRATIVES override)
+  if (NARRATIVES && NARRATIVES.showcase && NARRATIVES.showcase.length > 0) {
+    document.getElementById('showcaseGrid').innerHTML = NARRATIVES.showcase.map((s, i) =>
+      `<div class="showcase-card fade-in stagger-${(i % 5) + 1}">
+        <div class="showcase-headline">${s.headline || ''}</div>
+        <div class="showcase-repo">${s.repo}</div>
+        <div class="showcase-narrative">${s.narrative}</div>
+      </div>`
+    ).join('');
+  }
+  // If no NARRATIVES showcase, the renderShowcase() function already populated it from data
+
+  // Closing statement
+  const closingEl = document.getElementById('closingStatement');
+  if (NARRATIVES && NARRATIVES.closing) {
+    closingEl.innerHTML = `<p>${NARRATIVES.closing}</p>`;
+  } else {
+    // Data-driven closing
+    const h = d.highlights;
+    const lastEra = d.eras.length > 0 ? d.eras[d.eras.length - 1] : null;
+    const eraName = lastEra ? lastEra.name : 'the latest era';
+    closingEl.innerHTML = `<p>
+      The data tells an unambiguous story: each generation of AI tooling did not just incrementally improve productivity \u2014
+      it unlocked entirely new modes of working. From ${fmt(h.total_commits)} commits across ${h.total_repos} repositories,
+      the trajectory through ${eraName} shows no sign of flattening. The multiplication factor keeps growing.
+    </p>`;
+  }
+}
+
+// ============================================================
+// COMMIT TIMELINE with AI milestone annotations
+// ============================================================
+function renderCommitTimeline(d) {
+  const months = d.timeline.map(t => t.month);
+  const commits = d.timeline.map(t => t.commits);
+  const avg = d.timeline.map(t => t.commits_3mo_avg);
+
+  // Build milestone annotations
+  const annotations = {};
+  d.milestones.forEach((m, i) => {
+    const mMonth = m.date.substring(0, 7);
+    const idx = months.indexOf(mMonth);
+    if (idx >= 0) {
+      annotations['line' + i] = {
+        type: 'line',
+        xMin: idx, xMax: idx,
+        borderColor: 'rgba(0, 212, 255, 0.4)',
+        borderWidth: 2,
+        borderDash: [4, 4],
+        label: {
+          display: true,
+          content: m.name,
+          position: i % 2 === 0 ? 'start' : 'end',
+          backgroundColor: 'rgba(10, 13, 26, 0.95)',
+          color: '#00d4ff',
+          font: { size: 11, family: "'JetBrains Mono', monospace", weight: 'bold' },
+          padding: 6,
+          rotation: -90,
+          borderRadius: 6,
+          borderWidth: 1,
+          borderColor: 'rgba(0, 212, 255, 0.3)'
+        }
+      };
+    }
+  });
+
+  new Chart(document.getElementById('commitTimeline'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Contributions',
+          data: commits,
+          backgroundColor: commits.map((_, i) => {
+            const pct = i / months.length;
+            return `rgba(${Math.round(99 + pct * 70)}, ${Math.round(130 - pct * 40)}, 255, 0.7)`;
+          }),
+          borderRadius: 6,
+          barPercentage: 0.8,
+        },
+        {
+          label: '3-Month Average',
+          data: avg,
+          type: 'line',
+          borderColor: '#a855f7',
+          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+        annotation: { annotations },
+        tooltip: commonTooltipOptions
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxTicksLimit: 20,
+            font: { family: "'JetBrains Mono', monospace", size: 11 }
+          },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Contributions / Month', font: { size: 12, weight: '600' } },
+          ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// DVI CHART
+// ============================================================
+function renderDVI(d) {
+  // Definition box
+  const def = d.dvi_definition;
+  document.getElementById('dviDefinition').innerHTML = `
+    <div class="dvi-formula">
+      <h3>Formula</h3>
+      <code>${def.formula}</code>
+      <p>${def.description}</p>
+    </div>
+    <div class="dvi-formula">
+      <h3>Components</h3>
+      <p><strong style="color:var(--accent-blue)">Commits</strong> \u2014 raw shipping frequency</p>
+      <p><strong style="color:var(--accent-green)">Net Lines</strong> \u2014 code that stayed in the codebase</p>
+      <p><strong style="color:var(--accent-purple)">Active Repos</strong> \u2014 breadth of work across projects</p>
+      <p style="margin-top:12px"><strong style="color:var(--accent-cyan)">Peak = 100</strong> \u2014 all values normalized to the most productive month</p>
+    </div>
+  `;
+
+  const months = d.timeline.map(t => t.month);
+  const dvi = d.timeline.map(t => t.dvi);
+  const dviAvg = d.timeline.map(t => t.dvi_3mo_avg);
+
+  // Era background annotations
+  const eraColors = ['rgba(99,130,255,0.08)', 'rgba(0,212,255,0.08)', 'rgba(168,85,247,0.08)',
+                      'rgba(245,158,11,0.08)', 'rgba(16,185,129,0.08)', 'rgba(236,72,153,0.08)'];
+  const eraAnnotations = {};
+  d.eras.forEach((era, i) => {
+    const startIdx = months.indexOf(era.start);
+    const endIdx = months.indexOf(era.end);
+    if (startIdx >= 0 && endIdx >= 0) {
+      eraAnnotations['era' + i] = {
+        type: 'box',
+        xMin: startIdx - 0.5, xMax: endIdx + 0.5,
+        backgroundColor: eraColors[i % eraColors.length],
+        borderWidth: 0,
+        label: {
+          display: true,
+          content: era.name,
+          position: { x: 'center', y: 'start' },
+          color: '#a0abcc',
+          font: { size: 11, weight: '700', family: "'Inter', sans-serif" },
+          padding: 6,
+        }
+      };
+    }
+  });
+
+  new Chart(document.getElementById('dviChart'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'DVI',
+          data: dvi,
+          borderColor: '#6382ff',
+          backgroundColor: 'rgba(99, 130, 255, 0.15)',
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 2,
+          pointBackgroundColor: '#6382ff',
+          pointHoverRadius: 6,
+          tension: 0.3,
+        },
+        {
+          label: 'DVI (3-mo avg)',
+          data: dviAvg,
+          borderColor: '#ec4899',
+          borderWidth: 3,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          tension: 0.4,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+        annotation: { annotations: eraAnnotations },
+        tooltip: commonTooltipOptions
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 20, font: { family: "'JetBrains Mono', monospace", size: 11 } },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          max: 105,
+          title: { display: true, text: 'Delivery Velocity Index', font: { size: 12, weight: '600' } },
+          ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// LINES OF CODE CHART
+// ============================================================
+function renderLinesChart(d) {
+  const months = d.timeline.map(t => t.month);
+
+  new Chart(document.getElementById('linesChart'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Cumulative Additions',
+          data: d.timeline.map(t => t.cumulative_additions),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.3,
+        },
+        {
+          label: 'Cumulative Deletions',
+          data: d.timeline.map(t => t.cumulative_deletions),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.3,
+        },
+        {
+          label: 'Net Lines',
+          data: d.timeline.map(t => t.cumulative_net),
+          borderColor: '#6382ff',
+          borderWidth: 3,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          tension: 0.3,
+          fill: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+        tooltip: {
+          ...commonTooltipOptions,
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.raw)} lines`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 20, font: { family: "'JetBrains Mono', monospace", size: 11 } },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Lines of Code', font: { size: 12, weight: '600' } },
+          ticks: {
+            callback: v => fmt(v),
+            font: { family: "'JetBrains Mono', monospace", size: 11 }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// LINES PER COMMIT CHART
+// ============================================================
+function renderLPCChart(d) {
+  const months = d.timeline.map(t => t.month);
+  const lpc = d.timeline.map(t => t.lines_per_commit || 0);
+  const lpcAvg = d.timeline.map(t => t.lpc_3mo_avg || 0);
+
+  new Chart(document.getElementById('lpcChart'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Lines / Commit',
+          data: lpc,
+          backgroundColor: 'rgba(168, 85, 247, 0.5)',
+          borderRadius: 6,
+          barPercentage: 0.8,
+        },
+        {
+          label: '3-Month Average',
+          data: lpcAvg,
+          type: 'line',
+          borderColor: '#00d4ff',
+          backgroundColor: 'rgba(0, 212, 255, 0.1)',
+          fill: true,
+          borderWidth: 3,
+          pointRadius: 0,
+          tension: 0.4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+        tooltip: {
+          ...commonTooltipOptions,
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.raw)} lines`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 20, font: { family: "'JetBrains Mono', monospace", size: 11 } },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Lines per Commit', font: { size: 12, weight: '600' } },
+          ticks: {
+            callback: v => fmt(v),
+            font: { family: "'JetBrains Mono', monospace", size: 11 }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// ERA CARDS
+// ============================================================
+function renderEras(d) {
+  const eraColors = ['#6382ff', '#00d4ff', '#a855f7', '#f59e0b', '#10b981', '#ec4899'];
+  document.getElementById('eraGrid').innerHTML = d.eras.map((era, i) => `
+    <div class="era-card fade-in stagger-${(i%3)+1}" style="--era-color: ${eraColors[i % eraColors.length]}">
+      <div class="era-name" style="color: ${eraColors[i % eraColors.length]}">${era.name}</div>
+      <div class="era-period">${era.start} \u2014 ${era.end}</div>
+      <div class="era-desc">${era.description}</div>
+      <div class="era-metrics">
+        <div class="era-metric">
+          <div class="era-metric-value" style="color:${eraColors[i % eraColors.length]}">${era.total_commits.toLocaleString()}</div>
+          <div class="era-metric-label">Commits</div>
+        </div>
+        <div class="era-metric">
+          <div class="era-metric-value" style="color:${eraColors[i % eraColors.length]}">${fmt(era.total_net_lines)}</div>
+          <div class="era-metric-label">Net Lines</div>
+        </div>
+        <div class="era-metric">
+          <div class="era-metric-value" style="color:${eraColors[i % eraColors.length]}">${era.avg_monthly_commits}</div>
+          <div class="era-metric-label">Commits/Mo</div>
+        </div>
+        <div class="era-metric">
+          <div class="era-metric-value" style="color:${eraColors[i % eraColors.length]}">${era.avg_dvi}</div>
+          <div class="era-metric-label">Avg DVI</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// ERA COMPARISON CHART
+// ============================================================
+function renderEraCompare(d) {
+  const eraColors = ['#6382ff', '#00d4ff', '#a855f7', '#f59e0b', '#10b981', '#ec4899'];
+
+  new Chart(document.getElementById('eraCompareChart'), {
+    type: 'bar',
+    data: {
+      labels: d.eras.map(e => e.name),
+      datasets: [
+        {
+          label: 'Avg Monthly Commits',
+          data: d.eras.map(e => e.avg_monthly_commits),
+          backgroundColor: eraColors.map(c => c + 'AA'),
+          borderColor: eraColors,
+          borderWidth: 2,
+          borderRadius: 8,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Avg DVI',
+          data: d.eras.map(e => e.avg_dvi),
+          type: 'line',
+          borderColor: '#ec4899',
+          backgroundColor: 'rgba(236, 72, 153, 0.1)',
+          borderWidth: 3,
+          pointRadius: 6,
+          pointBackgroundColor: '#ec4899',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          tension: 0.3,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } }, tooltip: commonTooltipOptions },
+      scales: {
+        x: {
+          ticks: { font: { family: "'Inter', sans-serif", weight: '600' } }
+        },
+        y: {
+          beginAtZero: true,
+          position: 'left',
+          title: { display: true, text: 'Avg Monthly Commits', font: { size: 12, weight: '600' } },
+          ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } },
+        },
+        y1: {
+          beginAtZero: true,
+          position: 'right',
+          title: { display: true, text: 'Avg DVI', font: { size: 12, weight: '600' } },
+          grid: { drawOnChartArea: false },
+          ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } },
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// MILESTONES
+// ============================================================
+function renderMilestones(d) {
+  const firstMonth = d.timeline.length > 0 ? d.timeline[0].month : '2020-01';
+  const active = d.milestones.filter(m => m.date.substring(0, 7) >= firstMonth || m.after_dvi > 0 || m.before_dvi > 0);
+
+  document.getElementById('milestoneTrack').innerHTML = active.map((m, i) => {
+    const pct = m.dvi_change_pct;
+    let cls = 'neutral';
+    let arrow = '';
+    if (pct > 15) { cls = 'up'; arrow = '\u2191 '; }
+    else if (pct < -15) { cls = 'down'; arrow = '\u2193 '; }
+    else { arrow = ''; }
+
+    return `
+      <div class="milestone-item fade-in stagger-${(i%4)+1}">
+        <div class="milestone-header">
+          <span class="milestone-name">${m.name}</span>
+          <span class="milestone-date">${m.date}</span>
+        </div>
+        <div class="milestone-desc">${m.description}</div>
+        <span class="milestone-impact ${cls}">
+          DVI: ${m.before_dvi.toFixed(0)} \u2192 ${m.after_dvi.toFixed(0)} (${arrow}${pct > 0 ? '+' : ''}${pct.toFixed(0)}%)
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// LANGUAGES
+// ============================================================
+function renderLanguages(d) {
+  const top = d.languages.filter(l => l.percentage > 0.2);
+  const container = document.getElementById('langBars');
+
+  // Bar
+  const bar = top.map(l =>
+    `<div class="lang-bar-segment" style="width:${l.percentage}%;background:${getColor(l.name)}" title="${l.name}: ${l.percentage}%"></div>`
+  ).join('');
+
+  // Legend
+  const legend = top.map(l =>
+    `<div class="lang-legend-item">
+      <div class="lang-dot" style="background:${getColor(l.name)}"></div>
+      <span>${l.name}</span>
+      <span class="lang-pct">${l.percentage}%</span>
+    </div>`
+  ).join('');
+
+  container.innerHTML = `
+    <div class="lang-bar-track">${bar}</div>
+    <div class="lang-legend">${legend}</div>
+  `;
+
+  // Doughnut chart
+  new Chart(document.getElementById('langChart'), {
+    type: 'doughnut',
+    data: {
+      labels: top.map(l => l.name),
+      datasets: [{
+        data: top.map(l => l.percentage),
+        backgroundColor: top.map(l => getColor(l.name)),
+        borderColor: 'rgba(20,25,54,0.8)',
+        borderWidth: 3,
+        hoverOffset: 12,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...commonTooltipOptions,
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.raw}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ============================================================
+// REPO TABLE
+// ============================================================
+function renderRepoTable(d) {
+  const repos = d.top_repos.filter(r => r.commits > 5).slice(0, 20);
+  const table = document.getElementById('repoTable');
+
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Repository</th>
+        <th>Commits</th>
+        <th>Lines Added</th>
+        <th>Lines Deleted</th>
+        <th>Net Lines</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${repos.map((r, i) => `
+        <tr>
+          <td class="mono text-muted" style="text-align:center">${i + 1}</td>
+          <td>
+            <div class="repo-name">${r.short_name}</div>
+            <div class="repo-org">${r.org}</div>
+          </td>
+          <td class="mono" style="text-align:right; font-weight:600">${r.commits.toLocaleString()}</td>
+          <td class="mono text-green" style="text-align:right">${r.additions != null ? '+' + fmt(r.additions) : '\u2014'}</td>
+          <td class="mono text-red" style="text-align:right">${r.deletions != null ? '-' + fmt(r.deletions) : '\u2014'}</td>
+          <td class="mono" style="text-align:right; font-weight:600; color:${r.net_lines > 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+            ${r.net_lines != null ? (r.net_lines > 0 ? '+' : '') + fmt(r.net_lines) : '\u2014'}
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+// ============================================================
+// PROJECT SHOWCASE (What Was Built) -- data-driven default
+// Can be overridden by NARRATIVES.showcase in renderNarrativeExtras
+// ============================================================
+function renderShowcase(d) {
+  // Top 5 repos with descriptions, sorted by commits
+  const repos = d.top_repos
+    .filter(r => r.commits > 5)
+    .slice(0, 5);
+
+  document.getElementById('showcaseGrid').innerHTML = repos.map((r, i) => `
+    <div class="showcase-card fade-in stagger-${(i % 5) + 1}">
+      <div class="showcase-headline">${r.org || 'Project'}</div>
+      <div class="showcase-repo">${r.short_name}</div>
+      <div class="showcase-narrative">${r.description || 'No description available.'} ${r.commits.toLocaleString()} commits${r.additions != null ? ', ' + fmt(r.additions) + ' lines added' : ''}.</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// HEATMAP
+// ============================================================
+function renderHeatmap(d) {
+  const h = d.highlights;
+  document.getElementById('heatmapDesc').textContent =
+    `${h.total_active_days.toLocaleString()} active days. Longest streak: ${h.max_streak_days} days. Peak day: ${h.peak_day || 'N/A'} with ${h.peak_day_contributions} contributions.`;
+
+  // Build day map
+  const dayMap = {};
+  d.heatmap.forEach(h => { dayMap[h.date] = h.count; });
+
+  // Find date range
+  const dates = d.heatmap.map(h => h.date).sort();
+  if (dates.length === 0) return;
+
+  const startDate = new Date(dates[0]);
+  const endDate = new Date(dates[dates.length - 1]);
+
+  // Adjust start to Sunday
+  const start = new Date(startDate);
+  start.setDate(start.getDate() - start.getDay());
+
+  const maxCount = Math.max(...d.heatmap.map(h => h.count));
+  const wrapper = document.getElementById('heatmapWrapper');
+
+  let html = '<div class="heatmap-grid">';
+  let current = new Date(start);
+
+  while (current <= endDate) {
+    html += '<div class="heatmap-col">';
+    for (let day = 0; day < 7; day++) {
+      const dateStr = current.toISOString().substring(0, 10);
+      const count = dayMap[dateStr] || 0;
+      const intensity = count === 0 ? 0 : Math.max(0.15, Math.log(count + 1) / Math.log(maxCount + 1));
+
+      let color;
+      if (count === 0) {
+        color = 'rgba(255, 255, 255, 0.03)';
+      } else if (intensity < 0.3) {
+        color = `rgba(99, 130, 255, ${0.3 + intensity})`;
+      } else if (intensity < 0.6) {
+        color = `rgba(168, 85, 247, ${0.4 + intensity * 0.5})`;
+      } else {
+        color = `rgba(236, 72, 153, ${0.6 + intensity * 0.4})`;
+      }
+
+      html += `<div class="heatmap-cell" style="background:${color}; ${count > 0 ? `box-shadow: 0 0 ${intensity * 10}px ${color}, inset 0 1px 2px rgba(0,0,0,0.2);` : ''}" title="${dateStr}: ${count} contributions"></div>`;
+      current.setDate(current.getDate() + 1);
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  wrapper.innerHTML = html;
+
+  // Scroll to end (most recent)
+  setTimeout(() => {
+    wrapper.scrollLeft = wrapper.scrollWidth;
+  }, 100);
+}
+
+// ============================================================
+// YEARLY CHART
+// ============================================================
+function renderYearly(d) {
+  const years = Object.keys(d.highlights.yearly_commits).sort();
+  const commits = years.map(y => d.highlights.yearly_commits[y]);
+
+  // Determine current year and month for annualization
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+  const currentMonth = now.getMonth() + 1;
+
+  const annualized = commits.map((c, i) => {
+    if (years[i] === currentYear && currentMonth < 12) {
+      return Math.round(c * 12 / currentMonth);
+    }
+    return c;
+  });
+
+  const colors = years.map((y, i) => {
+    const pct = i / Math.max(years.length - 1, 1);
+    return `rgba(${Math.round(99 + pct * 137)}, ${Math.round(130 - pct * 45)}, ${Math.round(255 - pct * 102)}, 0.9)`;
+  });
+
+  new Chart(document.getElementById('yearlyChart'), {
+    type: 'bar',
+    data: {
+      labels: years.map((y, i) => y === currentYear && currentMonth < 12 ? y + ' (projected)' : y),
+      datasets: [
+        {
+          label: 'Actual Commits',
+          data: commits,
+          backgroundColor: colors,
+          borderRadius: 8,
+          barPercentage: 0.6,
+        },
+        {
+          label: 'Annualized',
+          data: annualized.map((a, i) => (years[i] === currentYear && currentMonth < 12) ? a : null),
+          backgroundColor: 'rgba(236, 72, 153, 0.2)',
+          borderColor: '#ec4899',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          borderRadius: 8,
+          barPercentage: 0.6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+        tooltip: {
+          ...commonTooltipOptions,
+          callbacks: {
+            label: (ctx) => {
+              if (ctx.datasetIndex === 1 && ctx.raw) {
+                return `Projected full year: ${ctx.raw.toLocaleString()} commits`;
+              }
+              return `${ctx.raw?.toLocaleString()} commits`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: 'Commits', font: { size: 12, weight: '600' } },
+          ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+
+// ============================================================
+// NAV BAR -- show on scroll, highlight active section
+// ============================================================
+(function() {
+  const nav = document.getElementById('mainNav');
+  if (!nav) return;
+  const links = nav.querySelectorAll('.nav-link');
+  const sections = document.querySelectorAll('section[id], header[id]');
+
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('visible', window.scrollY > 300);
+  });
+
+  links.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) {
+        const offset = 80;
+        window.scrollTo({ top: target.offsetTop - offset, behavior: 'smooth' });
+      }
+    });
+  });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const activeLink = nav.querySelector(`a[href="#${entry.target.id}"]`);
+        if (activeLink) activeLink.classList.add('active');
+
+        // Scroll active nav link into view horizontally if needed
+        if (activeLink) {
+          activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }
+    });
+  }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+})();
+
+
+// ============================================================
+// REPO ACTIVITY TIMELINE
+// ============================================================
+function renderRepoTimeline(d) {
+  const repoActivity = {};
+
+  for (const [year, summary] of Object.entries(d.yearly_summary)) {
+    if (summary.repos) {
+      summary.repos.forEach(r => {
+        if (!repoActivity[r.repo]) {
+          repoActivity[r.repo] = { years: [], totalCommits: 0 };
+        }
+        repoActivity[r.repo].years.push(parseInt(year));
+        repoActivity[r.repo].totalCommits += r.commits;
+      });
+    }
+  }
+
+  let repos = Object.entries(repoActivity)
+    .filter(([_, v]) => v.totalCommits > 10)
+    .map(([name, v]) => ({
+      name: name.split('/').pop(),
+      fullName: name,
+      startYear: Math.min(...v.years),
+      endYear: Math.max(...v.years),
+      commits: v.totalCommits,
+    }))
+    .sort((a, b) => a.startYear - b.startYear || b.commits - a.commits)
+    .slice(0, 20);
+
+  const existingNames = new Set(repos.map(r => r.fullName));
+  d.top_repos
+    .filter(r => r.commits > 20 && !existingNames.has(r.name))
+    .slice(0, 5)
+    .forEach(r => {
+      // Use actual activity dates from insights if available
+      const startYear = r.first_active ? parseInt(r.first_active.slice(0, 4)) : null;
+      const endYear = r.last_active ? parseInt(r.last_active.slice(0, 4)) : null;
+      if (startYear && endYear) {
+        repos.push({
+          name: r.short_name,
+          fullName: r.name,
+          startYear,
+          endYear,
+          commits: r.commits,
+        });
+      }
+    });
+
+  repos = repos.slice(0, 20);
+
+  if (repos.length === 0) return;
+
+  const allYears = Object.keys(d.yearly_summary).map(Number).sort();
+  const minYear = allYears.length > 0 ? allYears[0] : 2020;
+  const maxYear = allYears.length > 0 ? allYears[allYears.length - 1] : 2026;
+
+  const eraColorMap = {};
+  const eraColorList = [
+    'rgba(99, 130, 255, 0.9)', 'rgba(0, 212, 255, 0.9)', 'rgba(168, 85, 247, 0.9)',
+    'rgba(245, 158, 11, 0.9)', 'rgba(16, 185, 129, 0.9)', 'rgba(236, 72, 153, 0.9)',
+  ];
+  for (let y = minYear; y <= maxYear; y++) {
+    eraColorMap[y] = eraColorList[(y - minYear) % eraColorList.length];
+  }
+
+  const labels = repos.map(r => r.name);
+  const data = repos.map(r => [r.startYear - 0.4, r.endYear + 0.4]);
+  const bgColors = repos.map(r => {
+    const mid = Math.floor((r.startYear + r.endYear) / 2);
+    return eraColorMap[mid] || 'rgba(99, 130, 255, 0.9)';
+  });
+
+  new Chart(document.getElementById('repoTimeline'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Active Period',
+        data: data,
+        backgroundColor: bgColors,
+        borderRadius: 8,
+        barPercentage: 0.5,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)'
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...commonTooltipOptions,
+          callbacks: {
+            label: (ctx) => {
+              const r = repos[ctx.dataIndex];
+              return `${r.startYear}\u2013${r.endYear} (${r.commits.toLocaleString()} commits)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: minYear - 0.5,
+          max: maxYear + 0.5,
+          ticks: {
+            stepSize: 1,
+            callback: v => Math.round(v),
+            font: { family: "'JetBrains Mono', monospace", size: 11 }
+          },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          ticks: {
+            font: { family: "'JetBrains Mono', monospace", size: 12, weight: '500' }
+          },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+
+// ============================================================
+// DATA NOTES
+// ============================================================
+function renderDataNotes(d) {
+  const caveats = d.highlights.data_caveats || [];
+  if (caveats.length === 0) {
+    const el = document.getElementById('dataNotes');
+    if (el) el.style.display = 'none';
+    return;
+  }
+  const el = document.getElementById('dataNotes');
+  if (!el) return;
+  el.innerHTML = `
+    <h3>Data Notes</h3>
+    <ul>${caveats.map(c => `<li>${c}</li>`).join('')}</ul>
+  `;
+}
+
+</script>
+
+</body>
+</html>
