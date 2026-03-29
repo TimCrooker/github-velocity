@@ -100,7 +100,7 @@ Read `./gh_dump/insights.json` and `./gh_dump/search_commits.jsonl`. Analyze the
 
 3. **Anomalies** — Find surprising patterns: biggest month-over-month jumps, longest gaps followed by explosions, repos that appeared and disappeared, the relationship between AI milestone dates and velocity changes.
 
-4. **Project identity** — From repo names, descriptions, languages, and commit themes, figure out what each major project IS and write a narrative about it. "list-forge-monorepo" is just a name — your job is to explain it's a SaaS platform, an AI knowledge system, a dev tool, etc.
+4. **Project identity** — From repo names, descriptions, languages, and commit themes, figure out what each major project IS and write a narrative about it. A repo name alone means nothing — your job is to explain whether it's a SaaS platform, an AI system, a dev tool, etc.
 
 5. **The arc** — What's the overall story? Side-project tinkerer → enterprise engineer → AI-augmented architect? Student → professional → founder? Find the narrative arc in the data.
 
