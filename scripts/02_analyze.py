@@ -11,6 +11,7 @@ Usage:
 
 import argparse
 import json
+import math
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -88,6 +89,14 @@ contribution_calendar = load_jsonl(DUMP_DIR / "contribution_calendar.jsonl")
 repo_stats = load_jsonl(DUMP_DIR / "repo_stats.jsonl")
 search_commits = load_jsonl(DUMP_DIR / "search_commits.jsonl")
 repo_languages = load_jsonl(DUMP_DIR / "repo_languages.jsonl")
+
+# Load collaboration stats (REST Search API — includes private repos)
+collaboration_path = DUMP_DIR / "collaboration.json"
+if collaboration_path.exists():
+    with open(collaboration_path) as f:
+        collaboration_stats = json.load(f)
+else:
+    collaboration_stats = {}
 
 with open(DUMP_DIR / "repos_metadata.json") as f:
     repos_metadata = json.load(f)
@@ -176,9 +185,29 @@ print("Building weekly line stats...")
 weekly_lines = defaultdict(lambda: {"additions": 0, "deletions": 0, "commits": 0})
 repo_totals = {}
 repo_active_range = {}  # repo_name -> (first_active_date, last_active_date)
+data_caveats = []
 
+# First pass: compute per-repo totals to identify garbage repos
+garbage_repos = set()
 for repo_data in repo_stats:
     repo_name = repo_data["repo"]
+    total_add = sum(w["a"] for w in repo_data["weeks"])
+    total_commits = repo_data["total_commits"]
+    if total_add <= total_commits and total_add > 0:
+        garbage_repos.add(repo_name)
+
+if garbage_repos:
+    data_caveats.append(
+        f"{len(garbage_repos)} repos excluded from line counts due to clearly invalid "
+        f"GitHub Stats API data (additions <= commits)."
+    )
+
+# Second pass: build weekly/repo stats, skipping garbage repos
+for repo_data in repo_stats:
+    repo_name = repo_data["repo"]
+    if repo_name in garbage_repos:
+        continue
+
     total_add = 0
     total_del = 0
     total_commits = repo_data["total_commits"]
@@ -205,24 +234,6 @@ for repo_data in repo_stats:
         "deletions": total_del,
         "net_lines": total_add - total_del,
     }
-
-# Filter repos with garbage stats (additions <= commits is clearly wrong)
-filtered_repo_totals = {}
-data_caveats = []
-garbage_count = 0
-for name, stats in repo_totals.items():
-    if stats["additions"] <= stats["commits"] and stats["additions"] > 0:
-        garbage_count += 1
-        continue
-    filtered_repo_totals[name] = stats
-
-if garbage_count > 0:
-    data_caveats.append(
-        f"{garbage_count} repos excluded from line counts due to clearly invalid "
-        f"GitHub Stats API data (additions <= commits)."
-    )
-
-repo_totals = filtered_repo_totals
 
 # ============================================================
 # 4. Compute monthly aggregations from weekly data
@@ -387,6 +398,313 @@ for era in eras:
         })
 
 # ============================================================
+# 8.5. Estimated Development Hours
+# ============================================================
+print("Computing estimated development hours...")
+
+# Model I: 2h session base + 60min per contribution, capped at 14h
+# No AI dampening — hours measure time investment, not output efficiency
+# Non-contributing weekdays (2021+) get 3h for invisible work (debugging, design, review)
+IDLE_DAY_HOURS = 3.0
+DAILY_CAP = 14.0
+
+def estimate_base_hours(contributions):
+    """Session-based: fixed overhead + per-contribution work time."""
+    return min(2.0 + contributions * 1.0, DAILY_CAP)
+
+# Compute per-day hours
+daily_hours = {}  # date_str -> hours
+monthly_hours = defaultdict(lambda: {
+    "human_hours": 0.0, "active_days": 0, "idle_days": 0
+})
+
+# Active days (any day with contributions)
+for date_str, count in sorted(daily_contributions.items()):
+    hours = estimate_base_hours(count)
+    daily_hours[date_str] = hours
+    month_key = date_str[:7]
+    monthly_hours[month_key]["human_hours"] += hours
+    monthly_hours[month_key]["active_days"] += 1
+
+# Non-contributing weekdays (2021+) get idle hours
+idle_day_count = 0
+for year_data in contribution_calendar:
+    for day in year_data.get("days", []):
+        if day["contributionCount"] == 0 and day["date"] >= "2021-01-01":
+            dt = datetime.strptime(day["date"], "%Y-%m-%d")
+            if dt.weekday() < 5:  # Mon-Fri
+                month_key = day["date"][:7]
+                monthly_hours[month_key]["human_hours"] += IDLE_DAY_HOURS
+                monthly_hours[month_key]["idle_days"] += 1
+                idle_day_count += 1
+
+# Build monthly timeline with cumulative values
+dev_hours_timeline = []
+cum_hours = 0.0
+for month in all_months:
+    mh = monthly_hours.get(month, {"human_hours": 0, "active_days": 0, "idle_days": 0})
+    cum_hours += mh["human_hours"]
+    total_days = mh["active_days"] + mh["idle_days"]
+    dev_hours_timeline.append({
+        "month": month,
+        "human_hours": round(mh["human_hours"], 1),
+        "active_days": mh["active_days"],
+        "idle_days": mh["idle_days"],
+        "avg_hours_per_day": round(mh["human_hours"] / total_days, 1) if total_days > 0 else 0,
+        "cumulative_hours": round(cum_hours, 1),
+    })
+
+# 3-month rolling averages
+for i, entry in enumerate(dev_hours_timeline):
+    window = dev_hours_timeline[max(0, i - 2):i + 1]
+    entry["human_hours_3mo_avg"] = round(
+        sum(w["human_hours"] for w in window) / len(window), 1
+    )
+
+# Era rollup
+era_hours = defaultdict(lambda: {"human_hours": 0.0, "active_days": 0, "idle_days": 0})
+for entry in dev_hours_timeline:
+    for era in eras:
+        if era["start"] <= entry["month"] <= era["end"]:
+            era_hours[era["name"]]["human_hours"] += entry["human_hours"]
+            era_hours[era["name"]]["active_days"] += entry["active_days"]
+            era_hours[era["name"]]["idle_days"] += entry["idle_days"]
+            break
+
+dev_hours_eras = []
+for era in eras:
+    eh = era_hours.get(era["name"], {"human_hours": 0, "active_days": 0, "idle_days": 0})
+    total_days = eh["active_days"] + eh["idle_days"]
+    dev_hours_eras.append({
+        "name": era["name"],
+        "start": era["start"],
+        "end": era["end"],
+        "total_hours": round(eh["human_hours"], 1),
+        "active_days": eh["active_days"],
+        "idle_days": eh["idle_days"],
+        "avg_hours_per_day": round(eh["human_hours"] / total_days, 1) if total_days > 0 else 0,
+    })
+
+# Summary highlights
+total_hours = sum(entry["human_hours"] for entry in dev_hours_timeline)
+peak_month_entry = max(dev_hours_timeline, key=lambda x: x["human_hours"]) if dev_hours_timeline else None
+
+dev_hours_highlights = {
+    "total_hours": round(total_hours, 1),
+    "active_days": len(daily_hours),
+    "idle_days": idle_day_count,
+    "total_work_days": len(daily_hours) + idle_day_count,
+    "peak_month": peak_month_entry["month"] if peak_month_entry else None,
+    "peak_month_hours": peak_month_entry["human_hours"] if peak_month_entry else 0,
+    "avg_daily_hours": round(total_hours / (len(daily_hours) + idle_day_count), 1) if (len(daily_hours) + idle_day_count) > 0 else 0,
+    "work_weeks": round(total_hours / 40, 1),
+    "formula": "min(2.0 + contributions × 1.0, 14) per active day; 3.0 per non-contributing weekday",
+}
+
+# ============================================================
+# 8.6. Delivery Speed (output per hour of dev time)
+# ============================================================
+print("Computing delivery speed...")
+
+delivery_speed_timeline = []
+for i, month in enumerate(all_months):
+    mh = monthly_hours.get(month, {"human_hours": 0, "active_days": 0, "idle_days": 0})
+    hours = mh["human_hours"]
+    lines_data = monthly_lines.get(month, {"additions": 0, "deletions": 0})
+    contribs = monthly_contributions.get(month, 0)
+
+    additions = lines_data["additions"]
+    deletions = lines_data["deletions"]
+    net = additions - deletions
+
+    lines_per_hour = round(additions / hours, 1) if hours > 0 else 0
+    net_per_hour = round(net / hours, 1) if hours > 0 else 0
+    contribs_per_hour = round(contribs / hours, 2) if hours > 0 else 0
+
+    delivery_speed_timeline.append({
+        "month": month,
+        "hours": round(hours, 1),
+        "additions": additions,
+        "net_lines": net,
+        "contributions": contribs,
+        "lines_per_hour": lines_per_hour,
+        "net_per_hour": net_per_hour,
+        "contribs_per_hour": contribs_per_hour,
+    })
+
+# 3-month rolling averages
+for i, entry in enumerate(delivery_speed_timeline):
+    window = delivery_speed_timeline[max(0, i - 2):i + 1]
+    active_window = [w for w in window if w["hours"] > 0]
+    if active_window:
+        entry["lines_per_hour_3mo"] = round(
+            sum(w["additions"] for w in active_window) / sum(w["hours"] for w in active_window), 1
+        )
+        entry["contribs_per_hour_3mo"] = round(
+            sum(w["contributions"] for w in active_window) / sum(w["hours"] for w in active_window), 2
+        )
+    else:
+        entry["lines_per_hour_3mo"] = 0
+        entry["contribs_per_hour_3mo"] = 0
+
+# Era delivery speed
+delivery_speed_eras = []
+for era in eras:
+    era_entries = [e for e in delivery_speed_timeline if era["start"] <= e["month"] <= era["end"]]
+    total_hrs = sum(e["hours"] for e in era_entries)
+    total_adds = sum(e["additions"] for e in era_entries)
+    total_net = sum(e["net_lines"] for e in era_entries)
+    total_contribs = sum(e["contributions"] for e in era_entries)
+
+    delivery_speed_eras.append({
+        "name": era["name"],
+        "total_hours": round(total_hrs, 1),
+        "total_additions": total_adds,
+        "total_contributions": total_contribs,
+        "lines_per_hour": round(total_adds / total_hrs, 1) if total_hrs > 0 else 0,
+        "net_per_hour": round(total_net / total_hrs, 1) if total_hrs > 0 else 0,
+        "contribs_per_hour": round(total_contribs / total_hrs, 2) if total_hrs > 0 else 0,
+    })
+
+# ============================================================
+# 8.7. Community Engagement Score
+# ============================================================
+print("Computing community engagement...")
+
+# Aggregate collaboration data from contribution calendar
+yearly_engagement = []
+total_prs = 0
+total_reviews = 0
+total_issues = 0
+total_new_repos = 0
+engagement_months = 0  # months with any non-commit activity
+
+for year_data in contribution_calendar:
+    prs = year_data.get("pull_requests", 0)
+    reviews = year_data.get("reviews", 0)
+    issues = year_data.get("issues", 0)
+    new_repos = year_data.get("new_repos", 0)
+    total_prs += prs
+    total_reviews += reviews
+    total_issues += issues
+    total_new_repos += new_repos
+
+    yearly_engagement.append({
+        "year": year_data["year"],
+        "pull_requests": prs,
+        "reviews": reviews,
+        "issues": issues,
+        "new_repos": new_repos,
+        "commits": year_data.get("commits", 0),
+        "restricted": year_data.get("restricted", 0),
+        "total_contributions": year_data.get("total_contributions", 0),
+    })
+
+# Use REST Search API collaboration data (includes private repos) if available,
+# fall back to GraphQL data (public only) otherwise
+rest_prs = collaboration_stats.get("prs_authored", 0)
+rest_reviews = collaboration_stats.get("prs_reviewed", 0)
+rest_issues = collaboration_stats.get("issues_filed", 0)
+rest_comments = collaboration_stats.get("pr_comments", 0)
+
+# Prefer REST data (includes private repos) over GraphQL (public only)
+real_prs = max(rest_prs, total_prs)
+real_reviews = max(rest_reviews, total_reviews)
+real_issues = max(rest_issues, total_issues)
+real_comments = rest_comments
+
+# Compute engagement sub-scores (each 0-100)
+total_active_months = len([m for m in all_months if monthly_contributions.get(m, 0) > 0])
+_account_created = user_profile.get("created_at", "")[:10]
+_years = (datetime.now(timezone.utc) - datetime.strptime(_account_created, "%Y-%m-%d").replace(tzinfo=timezone.utc)).days / 365.25 if _account_created else 1
+
+# 1. Review Activity (30%) — PR reviews filed
+# Benchmark: active reviewer does 50+ reviews/year
+review_score = min(100, (real_reviews / max(_years, 1)) / 50 * 100)
+
+# 2. Discussion (25%) — Issues filed + PRs opened + PR comments
+# Benchmark: active participant has 100+ discussion interactions per year
+discussion_activity = real_issues + real_prs + real_comments
+discussion_score = min(100, (discussion_activity / max(_years, 1)) / 100 * 100)
+
+# 3. Collaboration Breadth (25%) — repos contributed to beyond your own
+# Use unique repos from calendar data
+all_collab_repos = set()
+for year_data in contribution_calendar:
+    for repo in year_data.get("repos", []):
+        all_collab_repos.add(repo["repo"])
+unique_repo_count = len(all_collab_repos)
+# Benchmark: 20+ repos = high breadth
+breadth_score = min(100, unique_repo_count / 20 * 100)
+
+# 4. Consistency (20%) — what % of active months had contributions
+consistency_score = min(100, (total_active_months / max(len(all_months), 1)) * 100)
+
+# Weighted composite
+engagement_composite = (
+    review_score * 0.30 +
+    discussion_score * 0.25 +
+    breadth_score * 0.25 +
+    consistency_score * 0.20
+)
+
+# Letter grade
+if engagement_composite >= 80:
+    grade = "A"
+    grade_label = "Team Multiplier"
+elif engagement_composite >= 65:
+    grade = "B"
+    grade_label = "Active Collaborator"
+elif engagement_composite >= 50:
+    grade = "C"
+    grade_label = "Engaged Builder"
+elif engagement_composite >= 35:
+    grade = "D"
+    grade_label = "Solo Builder"
+else:
+    grade = "F"
+    grade_label = "Lone Wolf"
+
+# Era engagement
+engagement_eras = []
+for era in eras:
+    era_years = [y for y in yearly_engagement
+                 if str(y["year"])[:4] >= era["start"][:4] and str(y["year"])[:4] <= era["end"][:4]]
+    era_prs = sum(y["pull_requests"] for y in era_years)
+    era_reviews = sum(y["reviews"] for y in era_years)
+    era_issues = sum(y["issues"] for y in era_years)
+    era_restricted = sum(y["restricted"] for y in era_years)
+    engagement_eras.append({
+        "name": era["name"],
+        "pull_requests": era_prs,
+        "reviews": era_reviews,
+        "issues": era_issues,
+        "restricted": era_restricted,
+    })
+
+community_engagement = {
+    "grade": grade,
+    "grade_label": grade_label,
+    "score": round(engagement_composite, 1),
+    "sub_scores": {
+        "review_activity": round(review_score, 1),
+        "discussion": round(discussion_score, 1),
+        "breadth": round(breadth_score, 1),
+        "consistency": round(consistency_score, 1),
+    },
+    "totals": {
+        "pull_requests": real_prs,
+        "reviews": real_reviews,
+        "issues": real_issues,
+        "pr_comments": real_comments,
+        "new_repos": total_new_repos,
+        "unique_repos": unique_repo_count,
+    },
+    "yearly": yearly_engagement,
+    "eras": engagement_eras,
+}
+
+# ============================================================
 # 9. Language breakdown
 # ============================================================
 print("Computing language breakdown...")
@@ -463,11 +781,11 @@ for date_str, count in sorted(daily_contributions.items()):
 print("Computing highlight stats...")
 
 total_contributions = sum(d["total_contributions"] for d in contribution_calendar)
-total_graphql_commits = sum(d.get("commits", 0) for d in contribution_calendar)
+total_graphql_commits = sum(d.get("commits", 0) + d.get("restricted", 0) for d in contribution_calendar)
 total_additions_all = sum(r.get("additions", 0) for r in repo_totals.values())
 total_deletions_all = sum(r.get("deletions", 0) for r in repo_totals.values())
 total_net = total_additions_all - total_deletions_all
-total_repos_touched = len(repo_commit_counts)
+total_repos_touched = len(repos_metadata)
 total_active_days = len(daily_contributions)
 
 # Peak month
@@ -553,6 +871,8 @@ highlights = {
     "account_created": account_created,
     "years_active": years_active,
     "yearly_commits": dict(yearly_commits),
+    "total_estimated_hours": dev_hours_highlights["total_hours"],
+    "engagement_grade": community_engagement["grade"],
     "data_caveats": data_caveats,
 }
 
@@ -638,6 +958,12 @@ insights = {
         "normalization": "Peak month = 100",
         "description": "A composite metric that weights commit frequency, net code output, and project breadth. Normalized so the most productive month scores 100.",
     },
+    "dev_hours_timeline": dev_hours_timeline,
+    "dev_hours_eras": dev_hours_eras,
+    "dev_hours_highlights": dev_hours_highlights,
+    "delivery_speed_timeline": delivery_speed_timeline,
+    "delivery_speed_eras": delivery_speed_eras,
+    "community_engagement": community_engagement,
 }
 
 with open(OUTPUT, "w") as f:
@@ -662,3 +988,6 @@ print(f"  Net lines: {highlights['total_net_lines']:,}")
 print(f"  Active days: {highlights['total_active_days']}")
 print(f"  Max streak: {highlights['max_streak_days']} days")
 print(f"  Years active: {highlights['years_active']}")
+print(f"  Dev hours: {dev_hours_highlights['total_hours']:,.0f} estimated")
+print(f"  Work weeks: {dev_hours_highlights['work_weeks']:,.1f}")
+print(f"  Engagement: {community_engagement['grade']} ({community_engagement['score']:.0f}/100) — {community_engagement['grade_label']}")

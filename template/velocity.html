@@ -836,6 +836,7 @@ section {
   .nav-brand { font-size: 13px; }
   .anomaly-grid { grid-template-columns: 1fr; }
   .showcase-grid { grid-template-columns: 1fr; }
+  #engagementContent > div:first-child { grid-template-columns: 1fr !important; }
 }
 
 /* ============================================================
@@ -1113,6 +1114,9 @@ section {
     <a class="nav-link" href="#dvi">DVI</a>
     <a class="nav-link" href="#lines">Lines</a>
     <a class="nav-link" href="#lpc">Lines/Commit</a>
+    <a class="nav-link" href="#dev-hours">Dev Hours</a>
+    <a class="nav-link" href="#delivery-speed">Delivery Speed</a>
+    <a class="nav-link" href="#engagement">Engagement</a>
     <a class="nav-link" href="#eras">Eras</a>
     <a class="nav-link" href="#acceleration">Acceleration</a>
     <a class="nav-link" href="#milestones">Milestones</a>
@@ -1221,6 +1225,79 @@ section {
         <canvas id="lpcChart"></canvas>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     ESTIMATED DEVELOPMENT HOURS
+     ============================================================ -->
+<section id="dev-hours">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Time Investment</div>
+      <h2 class="section-title">Estimated Development Hours</h2>
+      <p class="section-desc">How many human hours went into this code — and how AI changed the equation.</p>
+    </div>
+    <div class="hero-stats-dock fade-in" style="display: flex; justify-content: center; margin-bottom: 48px;">
+      <div class="hero-stats" id="devHoursHighlights"></div>
+    </div>
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container chart-container-tall">
+        <canvas id="devHoursChart"></canvas>
+      </div>
+    </div>
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container chart-container-tall">
+        <canvas id="cumulativeHoursChart"></canvas>
+      </div>
+    </div>
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container">
+        <canvas id="eraHoursChart"></canvas>
+      </div>
+    </div>
+    <div class="narrative fade-in" style="margin-top: 80px;" id="devHoursNarrative"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     DELIVERY SPEED
+     ============================================================ -->
+<section id="delivery-speed">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">AI Impact</div>
+      <h2 class="section-title">Delivery Speed</h2>
+      <p class="section-desc">How much output each hour of development produces — and how AI changed the equation.</p>
+    </div>
+    <div class="hero-stats-dock fade-in" style="display: flex; justify-content: center; margin-bottom: 48px;">
+      <div class="hero-stats" id="deliverySpeedHighlights"></div>
+    </div>
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container chart-container-tall">
+        <canvas id="deliverySpeedChart"></canvas>
+      </div>
+    </div>
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container">
+        <canvas id="eraDeliveryChart"></canvas>
+      </div>
+    </div>
+    <div class="narrative fade-in" style="margin-top: 80px;" id="deliverySpeedNarrative"></div>
+  </div>
+</section>
+
+<!-- ============================================================
+     COMMUNITY ENGAGEMENT
+     ============================================================ -->
+<section id="engagement">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-tag">Collaboration</div>
+      <h2 class="section-title">Community Engagement</h2>
+      <p class="section-desc">How you interact with the broader developer community — reviews, discussions, and collaboration breadth.</p>
+    </div>
+    <div id="engagementContent"></div>
   </div>
 </section>
 
@@ -1467,6 +1544,9 @@ function render() {
   renderLinesChart(d);
   renderLinesNarrative(d);
   renderLPCChart(d);
+  renderDevHours(d);
+  renderDeliverySpeed(d);
+  renderEngagement(d);
   renderEras(d);
   renderEraEndNarrative(d);
   renderEraCompare(d);
@@ -1558,10 +1638,9 @@ function renderHero(d) {
   const stats = [
     { value: fmt(h.total_commits), label: 'Commits' },
     { value: fmt(h.total_additions), label: 'Lines Added' },
-    { value: fmt(h.total_deletions), label: 'Lines Deleted' },
     { value: fmt(h.total_net_lines), label: 'Net Lines' },
     { value: h.max_streak_days, label: 'Day Streak' },
-    { value: h.total_contributions.toLocaleString(), label: 'Contributions' },
+    { value: h.total_estimated_hours ? fmt(Math.round(h.total_estimated_hours)) + ' hrs' : '—', label: 'Dev Time' },
   ];
 
   document.getElementById('heroStats').innerHTML = stats.map((s, i) => `
@@ -2075,6 +2154,468 @@ function renderLPCChart(d) {
       }
     }
   });
+}
+
+// ============================================================
+// ESTIMATED DEVELOPMENT HOURS
+// ============================================================
+function renderDevHours(d) {
+  if (!d.dev_hours_timeline || !d.dev_hours_highlights) return;
+
+  const dh = d.dev_hours_highlights;
+  const fmtH = n => n >= 1000 ? (n/1000).toFixed(1) + 'K' : Math.round(n).toLocaleString();
+
+  // Summary stat cards
+  document.getElementById('devHoursHighlights').innerHTML = [
+    { value: fmtH(dh.total_hours), label: 'Career Dev Hours' },
+    { value: dh.work_weeks.toLocaleString(), label: 'Work Weeks' },
+    { value: dh.avg_daily_hours, label: 'Avg Hours / Work Day' },
+    { value: dh.active_days.toLocaleString(), label: 'Active Coding Days' },
+  ].map((s, i) => `
+    <div class="hero-stat stagger-${i+1}">
+      <div class="hero-stat-value">${s.value}</div>
+      <div class="hero-stat-label">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Monthly hours bar chart with AI milestones
+  const tl = d.dev_hours_timeline;
+  const months = tl.map(t => t.month);
+  const humanHours = tl.map(t => t.human_hours);
+  const avg3mo = tl.map(t => t.human_hours_3mo_avg);
+
+  // Milestone annotations
+  const milestoneLines = [];
+  if (d.milestones) {
+    d.milestones.forEach(m => {
+      const idx = months.indexOf(m.date.substring(0, 7));
+      if (idx >= 0) {
+        milestoneLines.push({
+          type: 'line', mode: 'vertical', scaleID: 'x',
+          value: idx, borderColor: 'rgba(0, 212, 255, 0.5)',
+          borderWidth: 1, borderDash: [4, 4],
+          label: { display: true, content: m.name, position: 'start',
+            font: { size: 10, weight: '600' }, color: '#00d4ff',
+            backgroundColor: 'rgba(10, 10, 30, 0.85)',
+            padding: 4, borderRadius: 4, rotation: -90, yAdjust: -30 }
+        });
+      }
+    });
+  }
+
+  new Chart(document.getElementById('devHoursChart'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Hours',
+          data: humanHours,
+          backgroundColor: humanHours.map((_, i) => {
+            const pct = i / months.length;
+            return `rgba(${Math.round(245 - pct * 100)}, ${Math.round(158 - pct * 60)}, ${Math.round(11 + pct * 100)}, 0.8)`;
+          }),
+          borderRadius: 6,
+          barPercentage: 0.8,
+        },
+        {
+          label: '3-Month Average',
+          data: avg3mo,
+          type: 'line',
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { ...commonTooltipOptions, callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} hrs` } },
+        annotation: { annotations: milestoneLines },
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Hours / Month', font: { size: 12, weight: '600' } } },
+      }
+    },
+  });
+
+  // Cumulative hours chart
+  const cumHours = tl.map(t => t.cumulative_hours);
+
+  new Chart(document.getElementById('cumulativeHoursChart'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Cumulative Career Hours',
+        data: cumHours,
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.08)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { ...commonTooltipOptions, callbacks: { label: ctx => `${Math.round(ctx.parsed.y).toLocaleString()} hours` } },
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#64748b', callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Total Hours', font: { size: 12, weight: '600' } } },
+      }
+    }
+  });
+
+  // Era hours chart
+  if (d.dev_hours_eras) {
+    const eras = d.dev_hours_eras;
+    const eraColors = ['#6382ff', '#00d4ff', '#a855f7', '#f59e0b', '#10b981', '#ec4899'];
+
+    new Chart(document.getElementById('eraHoursChart'), {
+      type: 'bar',
+      data: {
+        labels: eras.map(e => e.name),
+        datasets: [
+          {
+            label: 'Total Hours',
+            data: eras.map(e => e.total_hours),
+            backgroundColor: eraColors.map(c => c + 'cc'),
+            borderRadius: 8,
+            barPercentage: 0.6,
+          },
+          {
+            label: 'Avg Hrs/Day',
+            data: eras.map(e => e.avg_hours_per_day),
+            type: 'line',
+            yAxisID: 'y2',
+            borderColor: '#ec4899',
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2.5,
+            pointRadius: 5,
+            pointBackgroundColor: '#ec4899',
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } },
+          tooltip: { ...commonTooltipOptions },
+        },
+        scales: {
+          x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'Total Hours', font: { size: 12, weight: '600' } } },
+          y2: { position: 'right', beginAtZero: true, ticks: { color: '#ec4899' },
+            grid: { display: false },
+            title: { display: true, text: 'Avg Hrs/Day', font: { size: 12, weight: '600' }, color: '#ec4899' } },
+        }
+      }
+    });
+  }
+
+  // Narrative
+  const narr = (key) => NARRATIVES && NARRATIVES.section_narratives && NARRATIVES.section_narratives[key];
+  const narrativeEl = document.getElementById('devHoursNarrative');
+  if (narr('dev_hours')) {
+    narrativeEl.innerHTML = `<div class="container"><p>${narr('dev_hours')}</p></div>`;
+  } else {
+    let text = `An estimated <strong>${Math.round(dh.total_hours).toLocaleString()} human hours</strong> across ${dh.total_work_days.toLocaleString()} work days — <strong>${dh.work_weeks} work weeks</strong> at the keyboard.`;
+    text += `<br><br><em style="color: var(--text-muted); font-size: 0.85em;">Model: ${dh.formula}.</em>`;
+    narrativeEl.innerHTML = `<div class="container"><p>${text}</p></div>`;
+  }
+}
+
+function renderDeliverySpeed(d) {
+  if (!d.delivery_speed_timeline || !d.delivery_speed_eras) return;
+
+  const tl = d.delivery_speed_timeline;
+  const eras = d.delivery_speed_eras;
+
+  // Find peak and current delivery speed
+  const activeMonths = tl.filter(t => t.hours > 0 && t.lines_per_hour > 0);
+  const peak = activeMonths.length > 0 ? activeMonths.reduce((a, b) => a.lines_per_hour > b.lines_per_hour ? a : b) : null;
+  const recent = activeMonths.length > 0 ? activeMonths[activeMonths.length - 1] : null;
+  const firstEra = eras.find(e => e.lines_per_hour > 0);
+  const lastEra = eras.length > 0 ? eras[eras.length - 1] : null;
+  const multiplier = (firstEra && lastEra && firstEra.lines_per_hour > 0) ? (lastEra.lines_per_hour / firstEra.lines_per_hour).toFixed(1) : '—';
+
+  const fmtN = n => n >= 1000 ? (n/1000).toFixed(1) + 'K' : Math.round(n).toLocaleString();
+
+  document.getElementById('deliverySpeedHighlights').innerHTML = [
+    { value: lastEra ? fmtN(lastEra.lines_per_hour) : '—', label: 'Lines / Hour (Current Era)' },
+    { value: lastEra ? lastEra.contribs_per_hour : '—', label: 'Contribs / Hour (Current Era)' },
+    { value: multiplier + 'x', label: 'Speed Multiplier vs Pre-AI' },
+    { value: peak ? peak.month : '—', label: 'Peak Speed Month' },
+  ].map((s, i) => `
+    <div class="hero-stat stagger-${i+1}">
+      <div class="hero-stat-value">${s.value}</div>
+      <div class="hero-stat-label">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Monthly lines/hour chart with milestones
+  const months = tl.map(t => t.month);
+  const linesPerHour = tl.map(t => t.lines_per_hour);
+  const lph3mo = tl.map(t => t.lines_per_hour_3mo);
+  const contribsPerHour = tl.map(t => t.contribs_per_hour);
+  const cph3mo = tl.map(t => t.contribs_per_hour_3mo);
+
+  // Milestone annotations
+  const milestoneLines = [];
+  if (d.milestones) {
+    d.milestones.forEach(m => {
+      const idx = months.indexOf(m.date.substring(0, 7));
+      if (idx >= 0) {
+        milestoneLines.push({
+          type: 'line', mode: 'vertical', scaleID: 'x',
+          value: idx, borderColor: 'rgba(0, 212, 255, 0.5)',
+          borderWidth: 1, borderDash: [4, 4],
+          label: { display: true, content: m.name, position: 'start',
+            font: { size: 10, weight: '600' }, color: '#00d4ff',
+            backgroundColor: 'rgba(10, 10, 30, 0.85)',
+            padding: 4, borderRadius: 4, rotation: -90, yAdjust: -30 }
+        });
+      }
+    });
+  }
+
+  new Chart(document.getElementById('deliverySpeedChart'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Lines Added / Hour',
+          data: lph3mo,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.08)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        },
+        {
+          label: 'Contribs / Hour',
+          data: cph3mo,
+          borderColor: '#a855f7',
+          backgroundColor: 'rgba(168, 85, 247, 0.08)',
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          yAxisID: 'y2',
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { ...commonTooltipOptions },
+        annotation: { annotations: milestoneLines },
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#10b981' }, grid: { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Lines / Hour (3mo avg)', font: { size: 12, weight: '600' }, color: '#10b981' } },
+        y2: { position: 'right', beginAtZero: true, ticks: { color: '#a855f7' },
+          grid: { display: false },
+          title: { display: true, text: 'Contribs / Hour (3mo avg)', font: { size: 12, weight: '600' }, color: '#a855f7' } },
+      }
+    }
+  });
+
+  // Era delivery speed comparison
+  const eraColors = ['#6382ff', '#00d4ff', '#a855f7', '#f59e0b', '#10b981', '#ec4899'];
+
+  new Chart(document.getElementById('eraDeliveryChart'), {
+    type: 'bar',
+    data: {
+      labels: eras.map(e => e.name),
+      datasets: [
+        {
+          label: 'Lines / Hour',
+          data: eras.map(e => e.lines_per_hour),
+          backgroundColor: eraColors.map(c => c + 'cc'),
+          borderRadius: 8,
+          barPercentage: 0.6,
+        },
+        {
+          label: 'Contribs / Hour',
+          data: eras.map(e => e.contribs_per_hour),
+          type: 'line',
+          yAxisID: 'y2',
+          borderColor: '#a855f7',
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: '#a855f7',
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { ...commonTooltipOptions },
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Lines / Hour', font: { size: 12, weight: '600' } } },
+        y2: { position: 'right', beginAtZero: true, ticks: { color: '#a855f7' },
+          grid: { display: false },
+          title: { display: true, text: 'Contribs / Hour', font: { size: 12, weight: '600' }, color: '#a855f7' } },
+      }
+    }
+  });
+
+  // Narrative
+  const narr = (key) => NARRATIVES && NARRATIVES.section_narratives && NARRATIVES.section_narratives[key];
+  const narrativeEl = document.getElementById('deliverySpeedNarrative');
+  if (narr('delivery_speed')) {
+    narrativeEl.innerHTML = `<div class="container"><p>${narr('delivery_speed')}</p></div>`;
+  } else {
+    let text = 'Delivery speed measures output per hour of development time.';
+    if (firstEra && lastEra && firstEra.lines_per_hour > 0) {
+      text = `In the <strong>${firstEra.name}</strong> era, each hour of development produced <strong>${firstEra.lines_per_hour.toLocaleString()} lines</strong>. `;
+      text += `In the <strong>${lastEra.name}</strong> era, that number is <strong>${lastEra.lines_per_hour.toLocaleString()} lines/hour</strong> — a <strong>${multiplier}x</strong> increase. `;
+      text += `The hours stayed the same (or increased). The output per hour exploded. That's the AI story.`;
+    }
+    narrativeEl.innerHTML = `<div class="container"><p>${text}</p></div>`;
+  }
+}
+
+// ============================================================
+// COMMUNITY ENGAGEMENT
+// ============================================================
+function renderEngagement(d) {
+  if (!d.community_engagement) return;
+  const ce = d.community_engagement;
+  const el = document.getElementById('engagementContent');
+
+  // Grade colors
+  const gradeColors = { A: '#10b981', B: '#6382ff', C: '#f59e0b', D: '#f97316', F: '#ef4444' };
+  const gradeColor = gradeColors[ce.grade] || '#64748b';
+
+  // Sub-score bar helper
+  const bar = (label, score, color) => `
+    <div style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+        <span style="font-size: 13px; color: var(--text-secondary);">${label}</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: ${color};">${Math.round(score)}/100</span>
+      </div>
+      <div style="background: rgba(255,255,255,0.05); border-radius: 8px; height: 8px; overflow: hidden;">
+        <div style="background: ${color}; width: ${score}%; height: 100%; border-radius: 8px; transition: width 1s ease;"></div>
+      </div>
+    </div>`;
+
+  const ss = ce.sub_scores;
+  const t = ce.totals;
+
+  el.innerHTML = `
+    <div style="display: grid; grid-template-columns: 280px 1fr; gap: 32px; margin-bottom: 48px;" class="fade-in">
+      <!-- Grade card -->
+      <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 80px; font-weight: 900; color: ${gradeColor}; line-height: 1;">${ce.grade}</div>
+        <div style="font-size: 14px; color: ${gradeColor}; text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; font-weight: 600;">${ce.grade_label}</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; color: var(--text-secondary); margin-top: 16px;">${ce.score.toFixed(0)}<span style="font-size: 14px; opacity: 0.5;">/100</span></div>
+      </div>
+      <!-- Sub-scores -->
+      <div class="card" style="padding: 32px;">
+        ${bar('Review Activity (30%)', ss.review_activity, '#a855f7')}
+        ${bar('Discussion (25%)', ss.discussion, '#00d4ff')}
+        ${bar('Collaboration Breadth (25%)', ss.breadth, '#10b981')}
+        ${bar('Consistency (20%)', ss.consistency, '#f59e0b')}
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="hero-stats-dock fade-in" style="display: flex; justify-content: center; margin-bottom: 48px;">
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-value">${t.pull_requests.toLocaleString()}</div><div class="hero-stat-label">Pull Requests</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${t.reviews.toLocaleString()}</div><div class="hero-stat-label">PR Reviews</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${(t.pr_comments || 0).toLocaleString()}</div><div class="hero-stat-label">PR Comments</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${t.issues}</div><div class="hero-stat-label">Issues Filed</div></div>
+        <div class="hero-stat"><div class="hero-stat-value">${t.unique_repos}</div><div class="hero-stat-label">Repos Touched</div></div>
+      </div>
+    </div>
+
+    <!-- Era engagement chart -->
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container">
+        <canvas id="engagementEraChart"></canvas>
+      </div>
+    </div>
+
+    <div class="narrative fade-in" style="margin-top: 80px;" id="engagementNarrative"></div>
+  `;
+
+  // Era chart
+  const eras = ce.eras;
+  const eraColors = ['#6382ff', '#00d4ff', '#a855f7', '#f59e0b', '#10b981', '#ec4899'];
+
+  new Chart(document.getElementById('engagementEraChart'), {
+    type: 'bar',
+    data: {
+      labels: eras.map(e => e.name),
+      datasets: [
+        { label: 'PRs', data: eras.map(e => e.pull_requests), backgroundColor: '#6382ffcc', borderRadius: 8, barPercentage: 0.7 },
+        { label: 'Reviews', data: eras.map(e => e.reviews), backgroundColor: '#a855f7cc', borderRadius: 8, barPercentage: 0.7 },
+        { label: 'Issues', data: eras.map(e => e.issues), backgroundColor: '#00d4ffcc', borderRadius: 8, barPercentage: 0.7 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { ...commonTooltipOptions },
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#64748b' }, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Interactions', font: { size: 12, weight: '600' } } },
+      }
+    }
+  });
+
+  // Narrative
+  const narr = NARRATIVES && NARRATIVES.section_narratives && NARRATIVES.section_narratives['engagement'];
+  const narrativeEl = document.getElementById('engagementNarrative');
+  if (narr) {
+    narrativeEl.innerHTML = `<div class="container"><p>${narr}</p></div>`;
+  } else {
+    let text = `<strong>Grade ${ce.grade}: ${ce.grade_label}</strong> — `;
+    if (ce.grade === 'A' || ce.grade === 'B') {
+      text += `Strong collaboration profile with ${t.pull_requests.toLocaleString()} PRs, ${t.reviews.toLocaleString()} reviews, ${(t.pr_comments || 0).toLocaleString()} PR comments, and activity across ${t.unique_repos} repos.`;
+    } else if (ce.grade === 'C') {
+      text += `Solid engagement across ${t.pull_requests.toLocaleString()} PRs, ${t.reviews.toLocaleString()} reviews, and ${t.unique_repos} repos.`;
+    } else {
+      text += `${t.pull_requests.toLocaleString()} PRs authored, ${t.reviews.toLocaleString()} reviews, ${(t.pr_comments || 0).toLocaleString()} PR comments across ${t.unique_repos} repos.`;
+    }
+    text += `<br><br><em style="color: var(--text-muted); font-size: 0.85em;">Score weights: Review Activity 30%, Discussion 25%, Collaboration Breadth 25%, Consistency 20%. Includes private repo activity via authenticated API access.</em>`;
+    narrativeEl.innerHTML = `<div class="container"><p>${text}</p></div>`;
+  }
 }
 
 // ============================================================

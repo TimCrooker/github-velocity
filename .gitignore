@@ -1,0 +1,15 @@
+# Test fixtures (real user data - never commit)
+tests/fixtures/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Output
+gh_dump/
+*.json
+!package.json
+
+# OS
+.DS_Store
