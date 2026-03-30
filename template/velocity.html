@@ -1113,19 +1113,15 @@ section {
     <a class="nav-link" href="#timeline">Timeline</a>
     <a class="nav-link" href="#dvi">DVI</a>
     <a class="nav-link" href="#lines">Lines</a>
-    <a class="nav-link" href="#lpc">Lines/Commit</a>
     <a class="nav-link" href="#dev-hours">Dev Hours</a>
     <a class="nav-link" href="#delivery-speed">Delivery Speed</a>
     <a class="nav-link" href="#engagement">Engagement</a>
-    <a class="nav-link" href="#eras">Eras</a>
-    <a class="nav-link" href="#acceleration">Acceleration</a>
+    <a class="nav-link" href="#eras">AI Eras</a>
     <a class="nav-link" href="#milestones">Milestones</a>
     <a class="nav-link" href="#languages">Languages</a>
     <a class="nav-link" href="#repos">Repos</a>
     <a class="nav-link" href="#showcase">Showcase</a>
-    <a class="nav-link" href="#repo-timeline">Activity</a>
     <a class="nav-link" href="#heatmap">Heatmap</a>
-    <a class="nav-link" href="#yearly">Annual</a>
   </div>
 </nav>
 
@@ -1211,24 +1207,6 @@ section {
 <div class="narrative fade-in" style="margin-top: 80px;" id="linesNarrative"></div>
 
 <!-- ============================================================
-     LINES PER COMMIT
-     ============================================================ -->
-<section id="lpc">
-  <div class="container">
-    <div class="section-header fade-in">
-      <div class="section-tag">Granularity</div>
-      <h2 class="section-title">Lines per Commit</h2>
-      <p class="section-desc">Are commits getting larger or smaller over time? This reveals how AI changes commit granularity.</p>
-    </div>
-    <div class="card fade-in">
-      <div class="chart-container chart-container-tall">
-        <canvas id="lpcChart"></canvas>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================
      ESTIMATED DEVELOPMENT HOURS
      ============================================================ -->
 <section id="dev-hours">
@@ -1308,31 +1286,16 @@ section {
   <div class="container">
     <div class="section-header fade-in">
       <div class="section-tag">Evolution</div>
-      <h2 class="section-title">The Six Eras</h2>
+      <h2 class="section-title">The AI Eras</h2>
       <p class="section-desc">How AI model generations transformed development velocity.</p>
     </div>
     <div class="era-grid" id="eraGrid"></div>
-  </div>
-</section>
-
-
-<div class="narrative fade-in" style="margin-top: 80px;" id="eraEndNarrative"></div>
-
-<!-- ============================================================
-     ERA BAR COMPARISON
-     ============================================================ -->
-<section id="acceleration">
-  <div class="container">
-    <div class="section-header fade-in">
-      <div class="section-tag">Comparison</div>
-      <h2 class="section-title">Era-over-Era Acceleration</h2>
-      <p class="section-desc">Average monthly commits and net lines per era.</p>
-    </div>
-    <div class="card fade-in">
+    <div class="card fade-in" style="margin-top: 48px;">
       <div class="chart-container">
         <canvas id="eraCompareChart"></canvas>
       </div>
     </div>
+    <div class="narrative fade-in" style="margin-top: 80px;" id="eraEndNarrative"></div>
   </div>
 </section>
 
@@ -1376,17 +1339,22 @@ section {
 </section>
 
 <!-- ============================================================
-     TOP REPOS
+     REPOSITORIES
      ============================================================ -->
 <section id="repos">
   <div class="container">
     <div class="section-header fade-in">
       <div class="section-tag">Projects</div>
-      <h2 class="section-title">Top Repositories</h2>
-      <p class="section-desc">The codebases that received the most attention.</p>
+      <h2 class="section-title">Repositories</h2>
+      <p class="section-desc">The codebases that received the most attention — and when they were actively developed.</p>
     </div>
     <div class="card fade-in" style="overflow-x:auto;">
       <table class="repo-table" id="repoTable"></table>
+    </div>
+    <div class="card fade-in" style="margin-top: 48px;">
+      <div class="chart-container" style="height: 500px;">
+        <canvas id="repoTimeline"></canvas>
+      </div>
     </div>
   </div>
 </section>
@@ -1407,24 +1375,6 @@ section {
 </section>
 
 <!-- ============================================================
-     REPO ACTIVITY TIMELINE
-     ============================================================ -->
-<section id="repo-timeline">
-  <div class="container">
-    <div class="section-header fade-in">
-      <div class="section-tag">Activity Map</div>
-      <h2 class="section-title">Project Activity Timeline</h2>
-      <p class="section-desc">When each major repository was actively developed. Bar width shows the active period.</p>
-    </div>
-    <div class="card fade-in">
-      <div class="chart-container" style="height: 500px;">
-        <canvas id="repoTimeline"></canvas>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================
      CONTRIBUTION HEATMAP
      ============================================================ -->
 <section id="heatmap">
@@ -1436,24 +1386,6 @@ section {
     </div>
     <div class="card fade-in">
       <div class="heatmap-wrapper" id="heatmapWrapper"></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================
-     YEARLY BREAKDOWN
-     ============================================================ -->
-<section id="yearly">
-  <div class="container">
-    <div class="section-header fade-in">
-      <div class="section-tag">Year by Year</div>
-      <h2 class="section-title">Annual Output</h2>
-      <p class="section-desc">Commit volume per calendar year.</p>
-    </div>
-    <div class="card fade-in">
-      <div class="chart-container">
-        <canvas id="yearlyChart"></canvas>
-      </div>
     </div>
   </div>
 </section>
@@ -1543,7 +1475,6 @@ function render() {
   renderDVI(d);
   renderLinesChart(d);
   renderLinesNarrative(d);
-  renderLPCChart(d);
   renderDevHours(d);
   renderDeliverySpeed(d);
   renderEngagement(d);
@@ -1555,9 +1486,8 @@ function render() {
   renderLanguages(d);
   renderRepoTable(d);
   renderShowcase(d);
-  renderHeatmap(d);
-  renderYearly(d);
   renderRepoTimeline(d);
+  renderHeatmap(d);
   renderDataNotes(d);
   renderNarrativeExtras(d);
 
